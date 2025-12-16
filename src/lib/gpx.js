@@ -1,3 +1,5 @@
+import { t } from "./i18n";
+
 function firstByLocalName(node, localName) {
   if (!node) return null;
   const anyNs = node.getElementsByTagNameNS?.("*", localName);
@@ -21,18 +23,18 @@ export async function parseGpxBlob(blob, { fallbackName } = {}) {
   const xmlText = await blob.text();
   const doc = new DOMParser().parseFromString(xmlText, "application/xml");
   if (doc.querySelector("parsererror")) {
-    throw new Error("Invalid GPX file (XML parse error).");
+    throw new Error(t("errors.gpxParseError"));
   }
 
   const gpx = doc.documentElement ?? doc;
   const trk = firstByLocalName(gpx, "trk");
 
-  const name = (trk && textOfFirst(trk, "name")) || fallbackName || "Untitled track";
+  const name = (trk && textOfFirst(trk, "name")) || fallbackName || t("history.untitled");
   const metadata = firstByLocalName(gpx, "metadata");
   const description = (trk && textOfFirst(trk, "desc")) || textOfFirst(metadata, "desc") || "";
 
   const pts = Array.from(doc.getElementsByTagNameNS?.("*", "trkpt") ?? doc.getElementsByTagName("trkpt") ?? []);
-  if (pts.length === 0) throw new Error("No <trkpt> points found in GPX.");
+  if (pts.length === 0) throw new Error(t("errors.gpxNoPoints"));
 
   const latlngs = [];
   const lat = [];
@@ -70,7 +72,7 @@ export async function parseGpxBlob(blob, { fallbackName } = {}) {
     timeMs.push(Number.isFinite(t) ? t : -1);
   }
 
-  if (latlngs.length < 2) throw new Error("Not enough valid points.");
+  if (latlngs.length < 2) throw new Error(t("errors.gpxNotEnoughPoints"));
 
   return {
     name,

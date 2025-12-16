@@ -1,0 +1,345 @@
+const STRINGS = {
+  it: {
+    app: {
+      menu: "Menu",
+      toggleMenu: "Apri/chiudi menu",
+      close: "Chiudi",
+      closeMenu: "Chiudi menu",
+      actions: "Azioni",
+      history: "Cronologia",
+      openGpx: "Apri GPX",
+      settings: "Impostazioni",
+      map: "Mappa",
+      elevation: "Dislivello",
+      elevationChart: "Grafico dislivello",
+      fit: "Adatta",
+      gps: "GPS",
+      follow: "Segui"
+    },
+    confirm: {
+      title: "Conferma",
+      message: "Sei sicuro?",
+      ok: "OK",
+      cancel: "Annulla",
+      delete: "Elimina",
+      deleteTrackTitle: "Eliminare traccia?",
+      deleteTrackMessage: "Rimuoverà la traccia dalla cronologia locale."
+    },
+    history: {
+      empty: 'Nessuna traccia. Tocca “{openGpx}” per importarne una.',
+      untitled: "Traccia senza titolo",
+      deleteTrackAria: "Elimina traccia",
+      deleteTrackTitle: "Elimina"
+    },
+    toast: {
+      saved: "Salvato.",
+      trackNotFound: "Traccia non trovata.",
+      fileTooLarge: "File troppo grande (>{max}MB).",
+      importFailed: "Importazione non riuscita.",
+      geoNotSupported: "Geolocalizzazione non supportata.",
+      geoPermissionDenied: "Permesso geolocalizzazione negato."
+    },
+    errors: {
+      gpxParseError: "File GPX non valido (errore parsing XML).",
+      gpxNoPoints: "Nessun punto <trkpt> trovato nel GPX.",
+      gpxNotEnoughPoints: "Punti validi insufficienti."
+    },
+    chart: {
+      processing: "Elaborazione…",
+      distanceMi: "Distanza (mi)",
+      distanceKm: "Distanza (km)",
+      elevFt: "Dislivello Δ (ft)",
+      elevM: "Dislivello Δ (m)"
+    },
+    settings: {
+      title: "Impostazioni",
+      close: "Chiudi impostazioni",
+      language: "Lingua",
+      languageAuto: "Auto",
+      languageIt: "Italiano",
+      languageEn: "English",
+      languageDe: "Deutsch",
+      timeEstimate: "Stima tempo ({paceUnit})",
+      timeEstimateHelp: "Usata solo se il GPX non contiene orari.",
+      spaceUsed: "Spazio usato: {usage}MB / {quota}MB",
+      clearOffline: "Cancella tutte le mappe offline",
+      clearOfflineConfirm: "Vuoi cancellare tutte le mappe offline?",
+      clearing: "Cancellazione in corso…",
+      cleared: "Mappe offline cancellate.",
+      clearFailed: "Errore durante la cancellazione.",
+      pruneLabel: "Cancella mappe non usate per…",
+      pruneAction: "Esegui pulizia",
+      pruning: "Pulizia in corso…",
+      pruned: "Eliminate {count} mappe.",
+      pruneFailed: "Errore durante la pulizia.",
+      cacheProgress: "Cache mappa… {done}/{total}",
+      retention: {
+        w1: "1 settimana",
+        w2: "2 settimane",
+        m1: "1 mese",
+        m2: "2 mesi",
+        m3: "3 mesi"
+      }
+    },
+    pwa: {
+      updateAvailable: "Nuova versione disponibile.",
+      update: "Aggiorna"
+    }
+  },
+  en: {
+    app: {
+      menu: "Menu",
+      toggleMenu: "Toggle menu",
+      close: "Close",
+      closeMenu: "Close menu",
+      actions: "Actions",
+      history: "History",
+      openGpx: "Open GPX",
+      settings: "Settings",
+      map: "Map",
+      elevation: "Elevation",
+      elevationChart: "Elevation chart",
+      fit: "Fit",
+      gps: "GPS",
+      follow: "Follow"
+    },
+    confirm: {
+      title: "Confirm",
+      message: "Are you sure?",
+      ok: "OK",
+      cancel: "Cancel",
+      delete: "Delete",
+      deleteTrackTitle: "Delete track?",
+      deleteTrackMessage: "This will remove the track from your local history."
+    },
+    history: {
+      empty: 'No tracks yet. Tap “{openGpx}” to import one.',
+      untitled: "Untitled track",
+      deleteTrackAria: "Delete track",
+      deleteTrackTitle: "Delete"
+    },
+    toast: {
+      saved: "Saved.",
+      trackNotFound: "Track not found.",
+      fileTooLarge: "File too large (>{max}MB).",
+      importFailed: "Import failed.",
+      geoNotSupported: "Geolocation not supported.",
+      geoPermissionDenied: "Geolocation permission denied."
+    },
+    errors: {
+      gpxParseError: "Invalid GPX file (XML parse error).",
+      gpxNoPoints: "No <trkpt> points found in GPX.",
+      gpxNotEnoughPoints: "Not enough valid points."
+    },
+    chart: {
+      processing: "Processing…",
+      distanceMi: "Distance (mi)",
+      distanceKm: "Distance (km)",
+      elevFt: "Elev Δ (ft)",
+      elevM: "Elev Δ (m)"
+    },
+    settings: {
+      title: "Settings",
+      close: "Close settings",
+      language: "Language",
+      languageAuto: "Auto",
+      languageIt: "Italiano",
+      languageEn: "English",
+      languageDe: "Deutsch",
+      timeEstimate: "Time estimate ({paceUnit})",
+      timeEstimateHelp: "Used only if the GPX has no timestamps.",
+      spaceUsed: "Storage used: {usage}MB / {quota}MB",
+      clearOffline: "Clear all offline maps",
+      clearOfflineConfirm: "Clear all offline maps?",
+      clearing: "Clearing…",
+      cleared: "Offline maps cleared.",
+      clearFailed: "Failed to clear offline maps.",
+      pruneLabel: "Delete maps not used for…",
+      pruneAction: "Run cleanup",
+      pruning: "Cleaning…",
+      pruned: "Deleted {count} maps.",
+      pruneFailed: "Failed to clean offline maps.",
+      cacheProgress: "Caching map… {done}/{total}",
+      retention: {
+        w1: "1 week",
+        w2: "2 weeks",
+        m1: "1 month",
+        m2: "2 months",
+        m3: "3 months"
+      }
+    },
+    pwa: {
+      updateAvailable: "New version available.",
+      update: "Update"
+    }
+  },
+  de: {
+    app: {
+      menu: "Menü",
+      toggleMenu: "Menü ein-/ausblenden",
+      close: "Schließen",
+      closeMenu: "Menü schließen",
+      actions: "Aktionen",
+      history: "Verlauf",
+      openGpx: "GPX öffnen",
+      settings: "Einstellungen",
+      map: "Karte",
+      elevation: "Höhenprofil",
+      elevationChart: "Höhenprofil-Diagramm",
+      fit: "Anpassen",
+      gps: "GPS",
+      follow: "Folgen"
+    },
+    confirm: {
+      title: "Bestätigen",
+      message: "Bist du sicher?",
+      ok: "OK",
+      cancel: "Abbrechen",
+      delete: "Löschen",
+      deleteTrackTitle: "Track löschen?",
+      deleteTrackMessage: "Der Track wird aus deinem lokalen Verlauf entfernt."
+    },
+    history: {
+      empty: 'Noch keine Tracks. Tippe auf “{openGpx}”, um einen zu importieren.',
+      untitled: "Track ohne Titel",
+      deleteTrackAria: "Track löschen",
+      deleteTrackTitle: "Löschen"
+    },
+    toast: {
+      saved: "Gespeichert.",
+      trackNotFound: "Track nicht gefunden.",
+      fileTooLarge: "Datei zu groß (>{max}MB).",
+      importFailed: "Import fehlgeschlagen.",
+      geoNotSupported: "Geolokalisierung wird nicht unterstützt.",
+      geoPermissionDenied: "Geolokalisierungszugriff verweigert."
+    },
+    errors: {
+      gpxParseError: "Ungültige GPX-Datei (XML-Parserfehler).",
+      gpxNoPoints: "Keine <trkpt>-Punkte im GPX gefunden.",
+      gpxNotEnoughPoints: "Nicht genügend gültige Punkte."
+    },
+    chart: {
+      processing: "Verarbeitung…",
+      distanceMi: "Distanz (mi)",
+      distanceKm: "Distanz (km)",
+      elevFt: "Höhe Δ (ft)",
+      elevM: "Höhe Δ (m)"
+    },
+    settings: {
+      title: "Einstellungen",
+      close: "Einstellungen schließen",
+      language: "Sprache",
+      languageAuto: "Auto",
+      languageIt: "Italiano",
+      languageEn: "English",
+      languageDe: "Deutsch",
+      timeEstimate: "Zeitabschätzung ({paceUnit})",
+      timeEstimateHelp: "Wird nur verwendet, wenn der GPX keine Zeitstempel hat.",
+      spaceUsed: "Belegt: {usage}MB / {quota}MB",
+      clearOffline: "Alle Offline-Karten löschen",
+      clearOfflineConfirm: "Alle Offline-Karten löschen?",
+      clearing: "Löschen…",
+      cleared: "Offline-Karten gelöscht.",
+      clearFailed: "Löschen fehlgeschlagen.",
+      pruneLabel: "Karten löschen, die nicht genutzt wurden seit…",
+      pruneAction: "Bereinigen",
+      pruning: "Bereinigung…",
+      pruned: "{count} Karten gelöscht.",
+      pruneFailed: "Bereinigung fehlgeschlagen.",
+      cacheProgress: "Karte wird zwischengespeichert… {done}/{total}",
+      retention: {
+        w1: "1 Woche",
+        w2: "2 Wochen",
+        m1: "1 Monat",
+        m2: "2 Monate",
+        m3: "3 Monate"
+      }
+    },
+    pwa: {
+      updateAvailable: "Neue Version verfügbar.",
+      update: "Aktualisieren"
+    }
+  }
+};
+
+function normalizeLang(raw) {
+  const v = String(raw || "").trim().toLowerCase();
+  if (!v) return null;
+  if (v === "ita") return "it";
+  if (v === "eng") return "en";
+  if (v === "deu" || v === "ger") return "de";
+  if (v.startsWith("it")) return "it";
+  if (v.startsWith("en")) return "en";
+  if (v.startsWith("de")) return "de";
+  return null;
+}
+
+const LANG_KEY = "2passi:lang:v1";
+
+function loadLangPreference() {
+  try {
+    const raw = localStorage.getItem(LANG_KEY);
+    const n = normalizeLang(raw);
+    return n;
+  } catch {
+    return null;
+  }
+}
+
+function detectLang() {
+  const langs = [];
+  try {
+    if (Array.isArray(navigator.languages)) langs.push(...navigator.languages);
+    if (navigator.language) langs.push(navigator.language);
+  } catch {
+    // ignore
+  }
+  for (const l of langs) {
+    const n = normalizeLang(l);
+    if (n) return n;
+  }
+  return "en";
+}
+
+let currentLang = loadLangPreference() ?? detectLang();
+
+function getByPath(obj, path) {
+  const parts = String(path || "").split(".");
+  let cur = obj;
+  for (const p of parts) {
+    if (!cur || typeof cur !== "object") return null;
+    cur = cur[p];
+  }
+  return typeof cur === "string" ? cur : null;
+}
+
+function interpolate(str, vars) {
+  if (!vars) return str;
+  return str.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
+
+export function getLang() {
+  return currentLang;
+}
+
+export function getLangPreference() {
+  return loadLangPreference() ?? "auto";
+}
+
+export function setLang(next) {
+  const normalized = normalizeLang(next);
+  try {
+    if (!next || String(next).toLowerCase() === "auto") localStorage.removeItem(LANG_KEY);
+    else if (normalized) localStorage.setItem(LANG_KEY, normalized);
+  } catch {
+    // ignore
+  }
+  currentLang = normalized ?? detectLang();
+  return currentLang;
+}
+
+export function t(key, vars) {
+  const k = String(key || "");
+  const msg = getByPath(STRINGS[currentLang], k) ?? getByPath(STRINGS.en, k) ?? k;
+  return interpolate(msg, vars);
+}

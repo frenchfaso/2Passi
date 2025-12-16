@@ -7,6 +7,7 @@ import { openAppDb } from "./lib/db";
 import { loadSettings, saveSettings, getDefaultSettings } from "./lib/settings";
 import { createSwClient } from "./lib/swClient";
 import { showToast } from "./lib/toast";
+import { getLangPreference, setLang, t } from "./lib/i18n";
 
 const MAX_FILE_SIZE_MB = 30;
 const GPS_STALE_AFTER_MS = 12_000;
@@ -147,10 +148,10 @@ export async function initController() {
   });
 
   function confirmAction({ title, message, okText, cancelText, destructive } = {}) {
-    confirmTitle.textContent = title || "Confirm";
-    confirmMessage.textContent = message || "Are you sure?";
-    btnConfirmOk.textContent = okText || "OK";
-    btnConfirmCancel.textContent = cancelText || "Cancel";
+    confirmTitle.textContent = title || t("confirm.title");
+    confirmMessage.textContent = message || t("confirm.message");
+    btnConfirmOk.textContent = okText || t("confirm.ok");
+    btnConfirmCancel.textContent = cancelText || t("confirm.cancel");
     btnConfirmOk.classList.toggle("contrast", Boolean(destructive));
 
     return new Promise((resolve) => {
@@ -200,7 +201,7 @@ export async function initController() {
     if (state.tracks.length === 0) {
       const empty = document.createElement("article");
       empty.className = "history-item";
-      empty.textContent = "No tracks yet. Tap “Open GPX” to import one.";
+      empty.textContent = t("history.empty", { openGpx: t("app.openGpx") });
       historyHost.append(empty);
       return;
     }
@@ -212,7 +213,9 @@ export async function initController() {
       item.innerHTML = `
         <header class="history-item-top">
           <strong class="history-title"></strong>
-          <button class="secondary outline" type="button" aria-label="Delete track" title="Delete">🗑</button>
+          <button class="secondary outline" type="button" aria-label="${t("history.deleteTrackAria")}" title="${t(
+        "history.deleteTrackTitle"
+      )}">🗑</button>
         </header>
         <small class="history-meta"></small>
       `;
@@ -221,7 +224,7 @@ export async function initController() {
       const meta = item.querySelector(".history-meta");
       const delBtn = item.querySelector("button");
 
-      if (title) title.textContent = track.name || "Untitled track";
+      if (title) title.textContent = track.name || t("history.untitled");
 
       if (meta) {
         const date = formatDateTime(track.addedAt);
@@ -253,10 +256,10 @@ export async function initController() {
 
   async function deleteTrack(trackId) {
     const ok = await confirmAction({
-      title: "Delete track?",
-      message: "This will remove the track from your local history.",
-      okText: "Delete",
-      cancelText: "Cancel",
+      title: t("confirm.deleteTrackTitle"),
+      message: t("confirm.deleteTrackMessage"),
+      okText: t("confirm.delete"),
+      cancelText: t("confirm.cancel"),
       destructive: true
     });
     if (!ok) return;
@@ -291,7 +294,7 @@ export async function initController() {
 
   async function openTrackFromBlob({ id, name, description, gpxBlob, addedAt, photoIds = [] }) {
     setCurrentTitle(name);
-    chartView.clear({ message: "Processing…" });
+    chartView.clear({ message: t("chart.processing") });
 
     const parsed = await parseGpxBlob(gpxBlob, { fallbackName: name });
     mapView.setTrack(parsed.latlngs);
@@ -313,8 +316,8 @@ export async function initController() {
     const elev = Array.from(eleNorm, (m) => m * eleFactor);
 
     chartView.setData(dist, elev, {
-      distLabel: unit === "mi" ? "Distance (mi)" : "Distance (km)",
-      elevLabel: settings.unitSystem === "imperial" ? "Elev Δ (ft)" : "Elev Δ (m)"
+      distLabel: unit === "mi" ? t("chart.distanceMi") : t("chart.distanceKm"),
+      elevLabel: settings.unitSystem === "imperial" ? t("chart.elevFt") : t("chart.elevM")
     });
 
     const totalDist = distM.length ? distM[distM.length - 1] : 0;
@@ -370,7 +373,7 @@ export async function initController() {
   async function openTrackById(id) {
     const record = await db.getTrack(id);
     if (!record) {
-      showToast("Track not found.");
+      showToast(t("toast.trackNotFound"));
       return;
     }
     await openTrackFromBlob(record);
@@ -379,7 +382,7 @@ export async function initController() {
   async function importGpxFile(file) {
     if (!file) return;
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      showToast(`File too large (>${MAX_FILE_SIZE_MB}MB).`);
+      showToast(t("toast.fileTooLarge", { max: MAX_FILE_SIZE_MB }));
       return;
     }
 
@@ -524,7 +527,7 @@ export async function initController() {
   function startGpsWatch() {
     if (state.geoWatchId != null) return;
     if (!("geolocation" in navigator)) {
-      showToast("Geolocation not supported.");
+      showToast(t("toast.geoNotSupported"));
       return;
     }
 
@@ -557,7 +560,7 @@ export async function initController() {
       (err) => {
         const code = Number(err?.code) || 0;
         if (code === 1) {
-          showToast(err.message || "Geolocation permission denied.");
+          showToast(err.message || t("toast.geoPermissionDenied"));
           stopGpsWatch();
           return;
         }
@@ -620,83 +623,65 @@ export async function initController() {
     settingsBody.innerHTML = `
       <form id="settingsForm">
         <label>
-          Units
-          <select id="setUnits" name="units">
-            <option value="metric">Metric (km, m)</option>
-            <option value="imperial">Imperial (mi, ft)</option>
+          ${t("settings.language")}
+          <select id="setLang" name="lang">
+            <option value="auto">${t("settings.languageAuto")}</option>
+            <option value="it">${t("settings.languageIt")}</option>
+            <option value="en">${t("settings.languageEn")}</option>
+            <option value="de">${t("settings.languageDe")}</option>
           </select>
         </label>
 
         <label>
-          Base pace (${paceUnit})
+          ${t("settings.timeEstimate", { paceUnit })}
+          <small>${t("settings.timeEstimateHelp")}</small>
           <input id="setPace" name="pace" type="number" inputmode="decimal" min="1" step="0.1" />
         </label>
 
-        <details open>
-          <summary>Map tiles</summary>
+        <hr />
 
-          <label>
-            Tile template
-            <input id="setTileTpl" type="text" />
-          </label>
+        <small id="storageInfo"></small>
 
-          <label>
-            Attribution (HTML)
-            <input id="setTileAttr" type="text" />
-          </label>
+        <button class="secondary" id="btnTilesClear" type="button">${t("settings.clearOffline")}</button>
 
-          <hr />
-
-          <button class="secondary" id="btnTilesClear" type="button">Delete all cached tiles</button>
-
-          <label>Delete tiles not opened for</label>
-          <fieldset role="group">
-            <select id="setTilesRetention">
-              <option value="604800">1 week</option>
-              <option value="1209600">2 weeks</option>
-              <option value="1814400">3 weeks</option>
-              <option value="2419200">4 weeks</option>
-              <option value="3024000">5 weeks</option>
-              <option value="2592000">1 month</option>
-              <option value="5184000">2 months</option>
-              <option value="7776000">3 months</option>
-              <option value="10368000">4 months</option>
-              <option value="12960000">5 months</option>
-            </select>
-            <button id="btnTilesPrune" type="button">Run cleanup</button>
-          </fieldset>
-
-          <small id="storageInfo"></small>
-        </details>
+        <label>${t("settings.pruneLabel")}</label>
+        <fieldset role="group">
+          <select id="setTilesRetention">
+            <option value="604800">${t("settings.retention.w1")}</option>
+            <option value="1209600">${t("settings.retention.w2")}</option>
+            <option value="2592000">${t("settings.retention.m1")}</option>
+            <option value="5184000">${t("settings.retention.m2")}</option>
+            <option value="7776000">${t("settings.retention.m3")}</option>
+          </select>
+          <button id="btnTilesPrune" type="button">${t("settings.pruneAction")}</button>
+        </fieldset>
       </form>
     `;
 
     const settingsForm = settingsBody.querySelector("#settingsForm");
     settingsForm?.addEventListener("submit", (e) => e.preventDefault());
 
-    const unitsSel = settingsBody.querySelector("#setUnits");
+    const langSel = settingsBody.querySelector("#setLang");
     const paceInput = settingsBody.querySelector("#setPace");
-    const tileTpl = settingsBody.querySelector("#setTileTpl");
-    const tileAttr = settingsBody.querySelector("#setTileAttr");
     const btnTilesClear = settingsBody.querySelector("#btnTilesClear");
     const retentionSel = settingsBody.querySelector("#setTilesRetention");
     const btnTilesPrune = settingsBody.querySelector("#btnTilesPrune");
     const storageInfo = settingsBody.querySelector("#storageInfo");
 
-    if (unitsSel) unitsSel.value = settings.unitSystem;
+    if (langSel) langSel.value = getLangPreference();
+    langSel?.addEventListener("change", () => {
+      setLang(langSel.value);
+      window.location.reload();
+    });
+
     if (paceInput) {
       const paceMin = settings.unitSystem === "imperial" ? settings.pace.secondsPerMi / 60 : settings.pace.secondsPerKm / 60;
       paceInput.value = String(Math.round(paceMin * 10) / 10);
     }
-    if (tileTpl) tileTpl.value = settings.tile.template;
-    if (tileAttr) tileAttr.value = settings.tile.attribution;
-
-    unitsSel?.addEventListener("change", async () => {
-      settings.unitSystem = unitsSel.value === "imperial" ? "imperial" : "metric";
-      saveSettings(settings);
-      renderSettings();
-      if (state.currentTrack) await openTrackById(state.currentTrack.id);
-    });
+    if (retentionSel) {
+      const s = String(settings.tile?.retentionSeconds ?? 2592000);
+      retentionSel.value = s;
+    }
 
     paceInput?.addEventListener("change", () => {
       const val = Number.parseFloat(paceInput.value);
@@ -705,46 +690,40 @@ export async function initController() {
       if (settings.unitSystem === "imperial") settings.pace.secondsPerMi = seconds;
       else settings.pace.secondsPerKm = seconds;
       saveSettings(settings);
-      showToast("Saved.");
+      showToast(t("toast.saved"));
     });
 
-    tileTpl?.addEventListener("change", () => {
-      const v = tileTpl.value.trim();
-      if (!v) return;
-      settings.tile.template = v;
+    retentionSel?.addEventListener("change", () => {
+      const seconds = Number.parseInt(retentionSel.value || "0", 10);
+      if (!Number.isFinite(seconds) || seconds <= 0) return;
+      settings.tile.retentionSeconds = seconds;
       saveSettings(settings);
-      mapView.setTileProvider(settings.tile.template, settings.tile.attribution);
-      showToast("Tile provider updated.");
-    });
-
-    tileAttr?.addEventListener("change", () => {
-      settings.tile.attribution = tileAttr.value.trim();
-      saveSettings(settings);
-      mapView.setTileProvider(settings.tile.template, settings.tile.attribution);
     });
 
     btnTilesClear?.addEventListener("click", async () => {
-      if (!confirm("Delete all cached map tiles?")) return;
-      showMicroprogress("Deleting tiles…");
+      if (!confirm(t("settings.clearOfflineConfirm"))) return;
+      showMicroprogress(t("settings.clearing"));
       try {
         await sw.deleteAllTiles();
-        showToast("Tiles cache cleared.");
+        showToast(t("settings.cleared"));
       } catch (e) {
-        showToast(e?.message || "Failed to clear tiles.");
+        showToast(e?.message || t("settings.clearFailed"));
       } finally {
         hideMicroprogress();
       }
     });
 
     btnTilesPrune?.addEventListener("click", async () => {
-      const seconds = Number.parseInt(retentionSel?.value || "0", 10);
+      const seconds = Number.parseInt(retentionSel?.value || String(settings.tile?.retentionSeconds ?? 0), 10);
       if (!Number.isFinite(seconds) || seconds <= 0) return;
-      showMicroprogress("Cleaning tiles…");
+      showMicroprogress(t("settings.pruning"));
       try {
+        settings.tile.retentionSeconds = seconds;
+        saveSettings(settings);
         const res = await sw.pruneTilesOlderThan({ maxAgeSeconds: seconds });
-        showToast(`Deleted ${res.deleted} tiles.`);
+        showToast(t("settings.pruned", { count: res.deleted }));
       } catch (e) {
-        showToast(e?.message || "Failed to clean tiles.");
+        showToast(e?.message || t("settings.pruneFailed"));
       } finally {
         hideMicroprogress();
       }
@@ -756,7 +735,7 @@ export async function initController() {
         .then((e) => {
           const usage = e.usage ? (e.usage / (1024 * 1024)).toFixed(1) : "?";
           const quota = e.quota ? (e.quota / (1024 * 1024)).toFixed(0) : "?";
-          if (storageInfo) storageInfo.textContent = `Storage usage: ${usage}MB / ${quota}MB`;
+          if (storageInfo) storageInfo.textContent = t("settings.spaceUsed", { usage, quota });
         })
         .catch(() => {});
     }
@@ -795,7 +774,7 @@ export async function initController() {
       await importGpxFile(file);
       setPanelOpen(false);
     } catch (e) {
-      showToast(e?.message || "Import failed.");
+      showToast(e?.message || t("toast.importFailed"));
     }
   });
 
@@ -821,7 +800,7 @@ export async function initController() {
 
   sw.onProgress((p) => {
     if (p.type === "tileAutoCacheProgress") {
-      showMicroprogress(`Caching map… ${p.done}/${p.total}`);
+      showMicroprogress(t("settings.cacheProgress", { done: p.done, total: p.total }));
       if (p.done >= p.total) setTimeout(() => hideMicroprogress(), 500);
     }
   });

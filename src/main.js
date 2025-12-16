@@ -6,6 +6,9 @@ import { createAppRoot } from "./app";
 import { initController } from "./controller";
 
 import { registerSW } from "virtual:pwa-register";
+import { getLang, t } from "./lib/i18n";
+
+document.documentElement.lang = getLang();
 
 const app = createAppRoot();
 document.querySelector("#app")?.append(app);
@@ -19,9 +22,9 @@ const updateSW = registerSW({
     const toast = document.createElement("article");
     toast.className = "toast";
     toast.innerHTML = `
-      <p>New version available.</p>
+      <p>${t("pwa.updateAvailable")}</p>
       <footer>
-        <button type="button">Update</button>
+        <button type="button">${t("pwa.update")}</button>
       </footer>
     `;
     const btn = toast.querySelector("button");

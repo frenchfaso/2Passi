@@ -16,6 +16,13 @@ export default defineConfig({
       filename: "sw.js",
       registerType: "prompt",
       injectRegister: false,
+      includeAssets: [
+        "favicon.ico",
+        "favicon-16.png",
+        "favicon-32.png",
+        "apple-touch-icon.png",
+        "icons/*.png"
+      ],
       manifest: {
         name: "2Passi",
         short_name: "2Passi",
@@ -27,10 +34,16 @@ export default defineConfig({
         theme_color: "#ffffff",
         icons: [
           {
-            src: "icons/icon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
-            purpose: "any maskable"
+            src: "icons/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "icons/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any"
           }
         ]
       },

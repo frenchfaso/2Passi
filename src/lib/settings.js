@@ -9,7 +9,8 @@ export function getDefaultSettings() {
     },
     tile: {
       template: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      retentionSeconds: 2592000
     }
   };
 }
@@ -20,7 +21,13 @@ export function loadSettings() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     const { theme: _theme, ...rest } = parsed || {};
-    return { ...getDefaultSettings(), ...rest };
+    const defaults = getDefaultSettings();
+    return {
+      ...defaults,
+      ...rest,
+      pace: { ...defaults.pace, ...(rest.pace || {}) },
+      tile: { ...defaults.tile, ...(rest.tile || {}) }
+    };
   } catch {
     return null;
   }

@@ -1,3 +1,5 @@
+import { t } from "./lib/i18n";
+
 export function createAppRoot() {
   const app = document.createElement("div");
   app.className = "app";
@@ -8,55 +10,55 @@ export function createAppRoot() {
         id="btnPanel"
         type="button"
         class="secondary outline"
-        aria-label="Toggle menu"
+        aria-label="${t("app.toggleMenu")}"
         aria-controls="panel"
         aria-expanded="false"
-        title="Menu"
+        title="${t("app.menu")}"
       >
         <span aria-hidden="true">☰</span>
       </button>
       <strong class="topbar-title" id="currentTitle">2Passi</strong>
     </header>
 
-    <aside class="panel" id="panel" aria-label="Menu">
+    <aside class="panel" id="panel" aria-label="${t("app.menu")}">
       <header class="panel-header">
-        <strong>Menu</strong>
+        <strong>${t("app.menu")}</strong>
         <button
           id="btnPanelClose"
           type="button"
           class="secondary outline"
-          aria-label="Close menu"
-          title="Close"
+          aria-label="${t("app.closeMenu")}"
+          title="${t("app.closeMenu")}"
         >
           <span aria-hidden="true">✕</span>
         </button>
       </header>
 
       <div class="panel-content">
-        <nav class="panel-menu" aria-label="Actions">
-          <button id="btnOpen" type="button">Open GPX</button>
-          <button id="btnSettings" type="button" class="secondary">Settings</button>
+        <nav class="panel-menu" aria-label="${t("app.actions")}">
+          <button id="btnOpen" type="button">${t("app.openGpx")}</button>
+          <button id="btnSettings" type="button" class="secondary">${t("app.settings")}</button>
         </nav>
 
-        <div class="history" id="history" aria-label="History"></div>
+        <div class="history" id="history" aria-label="${t("app.history")}"></div>
       </div>
     </aside>
 
     <main class="main">
       <section class="map-wrap">
-        <div id="map" class="map" aria-label="Map"></div>
+        <div id="map" class="map" aria-label="${t("app.map")}"></div>
         <div class="map-overlay">
-          <button id="btnFit" type="button" class="secondary outline">Fit</button>
-          <button id="btnLocate" type="button" class="secondary outline" aria-pressed="false">GPS</button>
-          <button id="btnFollow" type="button" class="secondary outline" aria-pressed="false" disabled>Follow</button>
+          <button id="btnFit" type="button" class="secondary outline">${t("app.fit")}</button>
+          <button id="btnLocate" type="button" class="secondary outline" aria-pressed="false">${t("app.gps")}</button>
+          <button id="btnFollow" type="button" class="secondary outline" aria-pressed="false" disabled>${t("app.follow")}</button>
         </div>
       </section>
       <section class="chart-wrap">
         <header class="chart-header">
-          <strong>Elevation</strong>
+          <strong>${t("app.elevation")}</strong>
           <small class="chart-meta" id="chartMeta"></small>
         </header>
-        <div id="chart" class="chart" aria-label="Elevation chart"></div>
+        <div id="chart" class="chart" aria-label="${t("app.elevationChart")}"></div>
       </section>
     </main>
 
@@ -65,8 +67,8 @@ export function createAppRoot() {
     <dialog id="settingsDialog" aria-labelledby="settingsTitle">
       <article>
         <header>
-          <button class="close" id="btnSettingsClose" aria-label="Close settings"></button>
-          <h3 id="settingsTitle">Settings</h3>
+          <button class="close" id="btnSettingsClose" aria-label="${t("settings.close")}"></button>
+          <h3 id="settingsTitle">${t("settings.title")}</h3>
         </header>
         <div id="settingsBody"></div>
       </article>
@@ -75,13 +77,13 @@ export function createAppRoot() {
     <dialog id="confirmDialog" aria-labelledby="confirmTitle">
       <article>
         <header>
-          <button class="close" id="btnConfirmClose" aria-label="Close"></button>
-          <h3 id="confirmTitle">Confirm</h3>
+          <button class="close" id="btnConfirmClose" aria-label="${t("app.close")}"></button>
+          <h3 id="confirmTitle">${t("confirm.title")}</h3>
         </header>
         <p id="confirmMessage"></p>
         <footer>
-          <button class="secondary" id="btnConfirmCancel" type="button">Cancel</button>
-          <button id="btnConfirmOk" type="button">Delete</button>
+          <button class="secondary" id="btnConfirmCancel" type="button">${t("confirm.cancel")}</button>
+          <button id="btnConfirmOk" type="button">${t("confirm.delete")}</button>
         </footer>
       </article>
     </dialog>
