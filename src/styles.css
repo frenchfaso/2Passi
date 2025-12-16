@@ -1,0 +1,350 @@
+[hidden] {
+  display: none !important;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--pico-nav-element-spacing-horizontal, 0.5rem);
+  padding: 0.5rem 0.75rem;
+  border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
+}
+
+.topbar-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.main {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 2fr 1fr;
+}
+
+.main > section {
+  margin: 0;
+}
+
+.map-wrap {
+  position: relative;
+  min-height: 0;
+  border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
+}
+
+.map {
+  height: 100%;
+  width: 100%;
+}
+
+.map-overlay {
+  position: absolute;
+  z-index: 500;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chart-wrap {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.chart-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
+}
+
+.chart-meta {
+  color: var(--pico-muted-color);
+}
+
+.chart {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.chart .u-over {
+  touch-action: none;
+}
+
+.chart-cursor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.chart .u-wrap,
+.chart .u-over {
+  overflow: visible;
+}
+
+.chart .u-under {
+  z-index: 0;
+}
+
+.chart .u-over {
+  z-index: 2;
+}
+
+.chart-placeholder {
+  padding: 0.75rem;
+}
+
+:root {
+  --panel-w: 340px;
+}
+
+.panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: min(var(--panel-w), 88vw);
+  background: var(--pico-card-background-color);
+  border-right: var(--pico-border-width) solid var(--pico-muted-border-color);
+  transform: translateX(-110%);
+  transition: transform var(--pico-transition);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.panel.open {
+  transform: translateX(0);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
+}
+
+.panel-content {
+  flex: 1;
+  overflow: auto;
+  overflow-x: hidden;
+  padding: 0.75rem;
+}
+
+.panel-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.history {
+  display: grid;
+  gap: 0.75rem;
+  overflow-x: hidden;
+}
+
+.history > article {
+  margin: 0;
+}
+
+.history-item {
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.history-item-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.history-item-top > button {
+  justify-self: end;
+}
+
+.history-title {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-meta {
+  color: var(--pico-muted-color);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+}
+
+.toast-host {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 1200;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.toast-host > article {
+  margin: 0;
+}
+
+.microprogress {
+  position: fixed;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  margin: 0;
+}
+
+#settingsDialog article {
+  margin: 0;
+}
+
+@keyframes gps-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+.dot-marker {
+  --marker-fill: rgba(1, 170, 255, 0.6);
+  --marker-border: rgba(255, 255, 255, 0.9);
+  --marker-opacity: 1;
+
+  display: block;
+  box-sizing: border-box;
+  aspect-ratio: 1 / 1;
+  width: 15px !important;
+  height: 15px !important;
+  border-radius: 50% !important;
+  background: var(--marker-fill) !important;
+  border: 2px solid var(--marker-border) !important;
+  opacity: var(--marker-opacity);
+}
+
+.leaflet-container .cursor-handle {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.leaflet-container path.gps-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: gps-pulse 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-container path.gps-pulse {
+    animation: none;
+  }
+}
+
+.marker-track {
+  --marker-fill: rgba(1, 170, 255, 0.6);
+  --marker-border: rgba(255, 255, 255, 0.9);
+  --marker-opacity: 1;
+}
+
+.leaflet-container img {
+  max-width: none !important;
+}
+
+.leaflet-container .leaflet-marker-icon,
+.leaflet-container .leaflet-marker-shadow {
+  max-width: none !important;
+}
+
+@media (min-width: 900px) {
+  :root {
+    --panel-w: 360px;
+  }
+
+  .panel {
+    transform: translateX(0);
+  }
+
+  .backdrop {
+    display: none !important;
+  }
+
+  .app {
+    grid-template-columns: var(--panel-w) 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "panel topbar"
+      "panel main";
+  }
+
+  .topbar {
+    grid-area: topbar;
+  }
+
+  .panel {
+    grid-area: panel;
+    position: static;
+    width: var(--panel-w);
+  }
+
+  .main {
+    grid-area: main;
+  }
+
+  #btnPanel,
+  #btnPanelClose {
+    display: none;
+  }
+}
