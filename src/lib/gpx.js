@@ -29,7 +29,7 @@ export async function parseGpxBlob(blob, { fallbackName } = {}) {
   const gpx = doc.documentElement ?? doc;
   const trk = firstByLocalName(gpx, "trk");
 
-  const name = (trk && textOfFirst(trk, "name")) || fallbackName || t("history.untitled");
+  const name = (trk && textOfFirst(trk, "name")) || fallbackName || "";
   const metadata = firstByLocalName(gpx, "metadata");
   const description = (trk && textOfFirst(trk, "desc")) || textOfFirst(metadata, "desc") || "";
 

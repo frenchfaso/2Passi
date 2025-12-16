@@ -267,7 +267,7 @@ export async function initController() {
     if (state.currentTrack?.id === trackId) {
       state.currentTrack = null;
       state.cursor = null;
-      currentTitle.textContent = "2Passi";
+      setCurrentTitle("");
       mapView.clearTrack();
       chartView.clear();
       localStorage.removeItem("lastTrackId");
@@ -288,15 +288,19 @@ export async function initController() {
   }
 
   function setCurrentTitle(name) {
-    currentTitle.textContent = name || "2Passi";
-    document.title = name ? `${name} — 2Passi` : "2Passi";
+    const trackName = (name || "").trim();
+    currentTitle.textContent = trackName;
+    currentTitle.hidden = !trackName;
+    document.title = trackName ? `${trackName} — 2Passi` : "2Passi";
   }
 
   async function openTrackFromBlob({ id, name, description, gpxBlob, addedAt, photoIds = [] }) {
-    setCurrentTitle(name);
+    setCurrentTitle("");
     chartView.clear({ message: t("chart.processing") });
 
     const parsed = await parseGpxBlob(gpxBlob, { fallbackName: name });
+    const displayName = (parsed.name || name || "").trim();
+    setCurrentTitle(displayName);
     mapView.setTrack(parsed.latlngs);
     mapView.fitToTrack();
 

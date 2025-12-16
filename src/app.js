@@ -1,6 +1,8 @@
 import { t } from "./lib/i18n";
 
 export function createAppRoot() {
+  const logoSrc = `${import.meta.env.BASE_URL}icons/icon-192.png`;
+
   const app = document.createElement("div");
   app.className = "app";
 
@@ -17,7 +19,13 @@ export function createAppRoot() {
       >
         <span aria-hidden="true">☰</span>
       </button>
-      <strong class="topbar-title" id="currentTitle">2Passi</strong>
+      <div class="topbar-brand">
+        <img class="brand-logo" src="${logoSrc}" alt="" aria-hidden="true" decoding="async" />
+        <div class="brand-text">
+          <strong class="app-title">2Passi</strong>
+          <small class="topbar-title track-title" id="currentTitle" hidden></small>
+        </div>
+      </div>
     </header>
 
     <aside class="panel" id="panel" aria-label="${t("app.menu")}">

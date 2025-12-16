@@ -29,6 +29,16 @@ body {
   gap: var(--pico-nav-element-spacing-horizontal, 0.5rem);
   padding: 0.5rem 0.75rem;
   border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
+  background: var(--pico-background-color);
+  box-shadow: 0 1px 0 rgba(2, 6, 23, 0.06);
+}
+
+@supports ((-webkit-backdrop-filter: blur(8px)) or (backdrop-filter: blur(8px))) {
+  .topbar {
+    background: color-mix(in srgb, var(--pico-background-color) 85%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
 }
 
 .topbar-title {
@@ -36,6 +46,39 @@ body {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.track-title {
+  color: var(--pico-muted-color);
+}
+
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+}
+
+.app-title {
+  line-height: 1.1;
+}
+
+.brand-text .topbar-title {
+  font-size: 0.9rem;
 }
 
 .main {
@@ -65,7 +108,42 @@ body {
   top: 0.75rem;
   right: 0.75rem;
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pico-background-color) 78%, transparent);
+  border: var(--pico-border-width) solid color-mix(in srgb, var(--pico-muted-border-color) 55%, transparent);
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.12);
+}
+
+.map-overlay > button {
+  padding: 0.4rem 0.65rem !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.map-overlay > button:not([disabled]):hover {
+  background: color-mix(in srgb, var(--pico-muted-border-color) 22%, transparent) !important;
+}
+
+.map-overlay > button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--pico-primary-background) 18%, transparent) !important;
+  color: var(--pico-primary) !important;
+}
+
+.map-overlay > button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pico-primary) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.map-overlay > button[disabled] {
+  opacity: 0.45;
 }
 
 .chart-wrap {
@@ -134,11 +212,13 @@ body {
   background: var(--pico-card-background-color);
   border-right: var(--pico-border-width) solid var(--pico-muted-border-color);
   transform: translateX(-110%);
-  transition: transform var(--pico-transition);
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
   z-index: 1000;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  box-shadow: 0 16px 50px rgba(2, 6, 23, 0.2);
 }
 
 .panel.open {
@@ -212,15 +292,23 @@ body {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.45);
   z-index: 900;
+}
+
+@supports ((-webkit-backdrop-filter: blur(8px)) or (backdrop-filter: blur(8px))) {
+  .backdrop {
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
 }
 
 .toast-host {
   position: fixed;
   bottom: 1rem;
-  left: 1rem;
-  right: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 2rem));
   z-index: 1200;
   display: grid;
   gap: 0.5rem;
@@ -228,6 +316,7 @@ body {
 
 .toast-host > article {
   margin: 0;
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.18);
 }
 
 .microprogress {
