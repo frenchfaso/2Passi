@@ -31,7 +31,7 @@ export function createSwClient() {
       timeout = setTimeout(() => {
         navigator.serviceWorker.removeEventListener("message", onMessage);
         resolve({ ok: false, error: "Timeout." });
-      }, 15000);
+      }, 60000);
     });
   }
 

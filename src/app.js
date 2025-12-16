@@ -6,61 +6,47 @@ export function createAppRoot() {
   const app = document.createElement("div");
   app.className = "app";
 
-  app.innerHTML = `
-    <header class="topbar">
-      <button
-        id="btnPanel"
-        type="button"
-        class="secondary outline"
-        aria-label="${t("app.toggleMenu")}"
-        aria-controls="panel"
-        aria-expanded="false"
-        title="${t("app.menu")}"
-      >
-        <span aria-hidden="true">☰</span>
-      </button>
-      <div class="topbar-brand">
-        <img class="brand-logo" src="${logoSrc}" alt="" aria-hidden="true" decoding="async" />
-        <div class="brand-text">
-          <strong class="app-title">2Passi</strong>
-          <small class="topbar-title track-title" id="currentTitle" hidden></small>
-        </div>
-      </div>
-    </header>
+	  app.innerHTML = `
+	    <header class="topbar">
+	      <div
+	        id="btnPanel"
+	        class="topbar-logo-btn"
+	        role="button"
+	        tabindex="0"
+	        aria-label="${t("app.toggleMenu")}"
+	        aria-controls="panel"
+	        aria-expanded="false"
+	        title="${t("app.menu")}"
+	      >
+	        <div class="topbar-logo-wrap" aria-hidden="true">
+	          <img class="brand-logo" src="${logoSrc}" alt="" decoding="async" />
+	        </div>
+	      </div>
+	      <div class="topbar-center">
+	        <strong class="app-title">2Passi</strong>
+	        <small class="topbar-title track-title" id="currentTitle" hidden></small>
+	      </div>
+	      <div class="topbar-spacer" aria-hidden="true"></div>
+	    </header>
 
-    <aside class="panel" id="panel" aria-label="${t("app.menu")}">
-      <header class="panel-header">
-        <strong>${t("app.menu")}</strong>
-        <button
-          id="btnPanelClose"
-          type="button"
-          class="secondary outline"
-          aria-label="${t("app.closeMenu")}"
-          title="${t("app.closeMenu")}"
-        >
-          <span aria-hidden="true">✕</span>
-        </button>
-      </header>
-
-      <div class="panel-content">
-        <nav class="panel-menu" aria-label="${t("app.actions")}">
-          <button id="btnOpen" type="button">${t("app.openGpx")}</button>
-          <button id="btnSettings" type="button" class="secondary">${t("app.settings")}</button>
-        </nav>
-
-        <div class="history" id="history" aria-label="${t("app.history")}"></div>
-      </div>
-    </aside>
+	    <aside class="panel" id="panel" aria-label="${t("app.menu")}">
+	      <div class="panel-content">
+	        <div class="history" id="history" aria-label="${t("app.history")}"></div>
+	        <nav class="panel-menu" aria-label="${t("app.actions")}">
+	          <button id="btnOpen" type="button">${t("app.openGpx")}</button>
+	          <button id="btnSettings" type="button" class="secondary">${t("app.settings")}</button>
+	        </nav>
+	      </div>
+	    </aside>
 
     <main class="main">
       <section class="map-wrap">
         <div id="map" class="map" aria-label="${t("app.map")}"></div>
-        <div class="map-overlay">
-          <button id="btnFit" type="button" class="secondary outline">${t("app.fit")}</button>
-          <button id="btnLocate" type="button" class="secondary outline" aria-pressed="false">${t("app.gps")}</button>
-          <button id="btnFollow" type="button" class="secondary outline" aria-pressed="false" disabled>${t("app.follow")}</button>
-        </div>
-      </section>
+	        <div class="map-overlay">
+	          <button id="btnFit" type="button" class="secondary outline">${t("app.fit")}</button>
+	          <button id="btnLocate" type="button" class="secondary outline" aria-pressed="false">${t("app.gps")}</button>
+	        </div>
+	      </section>
       <section class="chart-wrap">
         <header class="chart-header">
           <strong>${t("app.elevation")}</strong>

@@ -2,12 +2,23 @@ import L from "leaflet";
 
 export function createMapView(
   container,
-  { tileTemplate, tileAttribution, onCursorDragStart, onCursorDragMove, onCursorDragEnd } = {}
+  { tileTemplate, tileAttribution, onCursorDragStart, onCursorDragMove, onCursorDragEnd, onUserNavigate } = {}
 ) {
   const map = L.map(container, {
     zoomControl: false,
     attributionControl: true
   }).setView([45.4642, 9.19], 12);
+
+  map.attributionControl?.setPrefix("");
+
+  map.on("dragstart", (e) => {
+    if (!e?.originalEvent) return;
+    onUserNavigate?.();
+  });
+  map.on("zoomstart", (e) => {
+    if (!e?.originalEvent) return;
+    onUserNavigate?.();
+  });
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));

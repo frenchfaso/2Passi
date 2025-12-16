@@ -21,6 +21,7 @@ const TILE_CACHE = "tiles-v1";
 
 const MAX_TILES_AUTO = 300;
 const AUTO_CACHE_CONCURRENCY = 6;
+const MAX_TILE_AGE_SECONDS = 60 * 60 * 24 * 90;
 
 let dbPromise = null;
 function getDb() {
@@ -75,14 +76,14 @@ const tileAccessPlugin = {
 };
 
 registerRoute(
-  ({ request, url }) => request.method === "GET" && request.destination === "image" && isLikelySlippyTileUrl(url),
+  ({ request, url }) => request.method === "GET" && isLikelySlippyTileUrl(url),
   new CacheFirst({
     cacheName: TILE_CACHE,
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
         maxEntries: 2500,
-        maxAgeSeconds: 60 * 60 * 24 * 30,
+        maxAgeSeconds: MAX_TILE_AGE_SECONDS,
         purgeOnQuotaError: true
       }),
       tileAccessPlugin
@@ -182,9 +183,14 @@ async function autoCacheTiles({ tileTemplate, bbox, zooms, paddingRatio }) {
       if (!url) return;
       try {
         const req = new Request(url, { mode: "no-cors", credentials: "omit" });
+        const cached = await cache.match(req);
+        if (cached) {
+          queueTouchTile(url);
+          continue;
+        }
         const res = await fetch(req);
         if (res && (res.ok || res.type === "opaque")) {
-          await cache.put(url, res.clone());
+          await cache.put(req, res.clone());
           queueTouchTile(url);
         } else {
           errors++;
@@ -219,15 +225,23 @@ async function pruneTilesOlderThan({ maxAgeSeconds }) {
   const db = await getDb();
   const cache = await caches.open(TILE_CACHE);
   let deleted = 0;
+  const pendingCacheDeletes = [];
 
   const tx = db.transaction("tileAccess", "readwrite");
   for await (const cursor of tx.store.iterate()) {
     const v = cursor.value;
     if (!v || !Number.isFinite(v.lastAccessedAt) || v.lastAccessedAt >= cutoff) continue;
-    await cache.delete(cursor.key);
+    const req = new Request(String(cursor.key), { mode: "no-cors", credentials: "omit" });
+    pendingCacheDeletes.push(cache.delete(req));
     cursor.delete();
     deleted++;
+
+    if (pendingCacheDeletes.length >= 50) {
+      await Promise.allSettled(pendingCacheDeletes);
+      pendingCacheDeletes.length = 0;
+    }
   }
+  if (pendingCacheDeletes.length > 0) await Promise.allSettled(pendingCacheDeletes);
   await tx.done;
   return { deleted };
 }

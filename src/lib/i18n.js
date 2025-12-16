@@ -76,6 +76,8 @@ const STRINGS = {
       retention: {
         w1: "1 settimana",
         w2: "2 settimane",
+        w3: "3 settimane",
+        w4: "4 settimane",
         m1: "1 mese",
         m2: "2 mesi",
         m3: "3 mesi"
@@ -163,6 +165,8 @@ const STRINGS = {
       retention: {
         w1: "1 week",
         w2: "2 weeks",
+        w3: "3 weeks",
+        w4: "4 weeks",
         m1: "1 month",
         m2: "2 months",
         m3: "3 months"
@@ -250,6 +254,8 @@ const STRINGS = {
       retention: {
         w1: "1 Woche",
         w2: "2 Wochen",
+        w3: "3 Wochen",
+        w4: "4 Wochen",
         m1: "1 Monat",
         m2: "2 Monate",
         m3: "3 Monate"

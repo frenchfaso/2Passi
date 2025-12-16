@@ -11,6 +11,8 @@ import { getLangPreference, setLang, t } from "./lib/i18n";
 
 const MAX_FILE_SIZE_MB = 30;
 const GPS_STALE_AFTER_MS = 12_000;
+const TILES_AUTO_PRUNE_LAST_KEY = "2passi:tiles:lastAutoPruneAt:v1";
+const TILES_AUTO_PRUNE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function byId(id) {
   const el = document.getElementById(id);
@@ -20,7 +22,6 @@ function byId(id) {
 
 export async function initController() {
   const btnPanel = byId("btnPanel");
-  const btnPanelClose = byId("btnPanelClose");
   const panel = byId("panel");
   const backdrop = byId("backdrop");
 
@@ -45,16 +46,42 @@ export async function initController() {
 
   const btnFit = byId("btnFit");
   const btnLocate = byId("btnLocate");
-  const btnFollow = byId("btnFollow");
 
   const db = await openAppDb();
   const sw = createSwClient();
 
   let settings = loadSettings() ?? getDefaultSettings();
 
+  async function maybeAutoPruneTiles() {
+    const now = Date.now();
+    const last = Number.parseInt(localStorage.getItem(TILES_AUTO_PRUNE_LAST_KEY) || "0", 10);
+    if (Number.isFinite(last) && now - last < TILES_AUTO_PRUNE_INTERVAL_MS) return;
+
+    const retentionSeconds = Number.parseInt(String(settings.tile?.retentionSeconds ?? 2592000), 10);
+    if (!Number.isFinite(retentionSeconds) || retentionSeconds <= 0) return;
+
+    try {
+      await sw.pruneTilesOlderThan({ maxAgeSeconds: retentionSeconds });
+      localStorage.setItem(TILES_AUTO_PRUNE_LAST_KEY, String(now));
+    } catch {
+      // ignore
+    }
+  }
+
+  setTimeout(() => maybeAutoPruneTiles().catch(() => {}), 1500);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    maybeAutoPruneTiles().catch(() => {});
+  });
+
   const mapView = createMapView(byId("map"), {
     tileTemplate: settings.tile.template,
     tileAttribution: settings.tile.attribution,
+    onUserNavigate() {
+      if (state.geoWatchId == null) return;
+      state.followGps = false;
+      state.followGpsLocked = true;
+    },
     onCursorDragStart() {
       state.isUserDragging = true;
     },
@@ -99,7 +126,8 @@ export async function initController() {
     lastSnapResult: null,
     lastUserCursorLatLng: null,
     geoWatchId: null,
-    followGps: false
+    followGps: false,
+    followGpsLocked: false
   };
 
   let ignoreChartCursorEvents = 0;
@@ -123,7 +151,7 @@ export async function initController() {
     backdrop.hidden = !open;
     btnPanel.setAttribute("aria-expanded", String(open));
 
-    if (open) btnPanelClose.focus();
+    if (open) btnOpen.focus();
     else lastFocusBeforePanel?.focus?.();
   }
 
@@ -212,12 +240,14 @@ export async function initController() {
 
       item.innerHTML = `
         <header class="history-item-top">
-          <strong class="history-title"></strong>
+          <div class="history-text">
+            <span class="history-title"></span>
+            <small class="history-meta"></small>
+          </div>
           <button class="secondary outline" type="button" aria-label="${t("history.deleteTrackAria")}" title="${t(
         "history.deleteTrackTitle"
       )}">🗑</button>
         </header>
-        <small class="history-meta"></small>
       `;
 
       const title = item.querySelector(".history-title");
@@ -227,10 +257,9 @@ export async function initController() {
       if (title) title.textContent = track.name || t("history.untitled");
 
       if (meta) {
-        const date = formatDateTime(track.addedAt);
         const dist = formatDistance(track.trackLength, track.trackLengthUnit);
         const eta = formatDuration(track.estimatedTimeSeconds);
-        meta.textContent = `${date} • ${dist} • ${eta}`;
+        meta.textContent = `${dist} • ${eta}`;
       }
 
       item.addEventListener("click", async (e) => {
@@ -537,12 +566,10 @@ export async function initController() {
 
     state.gpsStale = false;
     state.gpsLastFixAt = 0;
-    state.followGps = true;
+    state.followGps = false;
+    state.followGpsLocked = false;
     btnLocate.classList.remove("outline");
     btnLocate.setAttribute("aria-pressed", "true");
-    btnFollow.disabled = false;
-    btnFollow.classList.toggle("outline", !state.followGps);
-    btnFollow.setAttribute("aria-pressed", String(state.followGps));
 
     clearInterval(gpsStaleTimer);
     gpsStaleTimer = setInterval(() => {
@@ -558,7 +585,10 @@ export async function initController() {
         state.gpsLastFixAt = Date.now();
         mapView.setGps({ lat: latitude, lon: longitude, accuracyM: accuracy });
         setGpsStale(false);
-        if (state.followGps) mapView.panToGps();
+        if (!state.followGpsLocked) {
+          if (!state.followGps) state.followGps = true;
+          mapView.panToGps();
+        }
         maybeSnapGpsToTrack();
       },
       (err) => {
@@ -591,11 +621,9 @@ export async function initController() {
     state.lastSnapResult = null;
     mapView.clearGps();
     state.followGps = false;
+    state.followGpsLocked = false;
     btnLocate.classList.add("outline");
     btnLocate.setAttribute("aria-pressed", "false");
-    btnFollow.classList.add("outline");
-    btnFollow.setAttribute("aria-pressed", "false");
-    btnFollow.disabled = true;
   }
 
   let lastSnapAt = 0;
@@ -642,25 +670,28 @@ export async function initController() {
           <input id="setPace" name="pace" type="number" inputmode="decimal" min="1" step="0.1" />
         </label>
 
-        <hr />
+	        <hr />
+	
+	        <label>${t("settings.pruneLabel")}</label>
+	        <fieldset role="group">
+	          <select id="setTilesRetention">
+	            <option value="604800">${t("settings.retention.w1")}</option>
+	            <option value="1209600">${t("settings.retention.w2")}</option>
+	            <option value="1814400">${t("settings.retention.w3")}</option>
+	            <option value="2419200">${t("settings.retention.w4")}</option>
+	            <option value="2592000">${t("settings.retention.m1")}</option>
+	            <option value="5184000">${t("settings.retention.m2")}</option>
+	            <option value="7776000">${t("settings.retention.m3")}</option>
+	          </select>
+	          <button id="btnTilesPrune" type="button">${t("settings.pruneAction")}</button>
+	        </fieldset>
 
-        <small id="storageInfo"></small>
-
-        <button class="secondary" id="btnTilesClear" type="button">${t("settings.clearOffline")}</button>
-
-        <label>${t("settings.pruneLabel")}</label>
-        <fieldset role="group">
-          <select id="setTilesRetention">
-            <option value="604800">${t("settings.retention.w1")}</option>
-            <option value="1209600">${t("settings.retention.w2")}</option>
-            <option value="2592000">${t("settings.retention.m1")}</option>
-            <option value="5184000">${t("settings.retention.m2")}</option>
-            <option value="7776000">${t("settings.retention.m3")}</option>
-          </select>
-          <button id="btnTilesPrune" type="button">${t("settings.pruneAction")}</button>
-        </fieldset>
-      </form>
-    `;
+	        <div class="settings-tiles-footer">
+	          <button class="secondary" id="btnTilesClear" type="button">${t("settings.clearOffline")}</button>
+	          <small id="storageInfo"></small>
+	        </div>
+	      </form>
+	    `;
 
     const settingsForm = settingsBody.querySelector("#settingsForm");
     settingsForm?.addEventListener("submit", (e) => e.preventDefault());
@@ -671,6 +702,29 @@ export async function initController() {
     const retentionSel = settingsBody.querySelector("#setTilesRetention");
     const btnTilesPrune = settingsBody.querySelector("#btnTilesPrune");
     const storageInfo = settingsBody.querySelector("#storageInfo");
+
+    async function refreshStorageInfo({ retries = 1, delayMs = 350 } = {}) {
+      if (!storageInfo) return;
+      if (!("storage" in navigator) || !("estimate" in navigator.storage)) {
+        storageInfo.textContent = "";
+        storageInfo.hidden = true;
+        return;
+      }
+
+      storageInfo.hidden = false;
+      for (let i = 0; i < retries; i++) {
+        try {
+          const e = await navigator.storage.estimate();
+          const usage = e.usage ? (e.usage / (1024 * 1024)).toFixed(1) : "?";
+          const quota = e.quota ? (e.quota / (1024 * 1024)).toFixed(0) : "?";
+          storageInfo.textContent = t("settings.spaceUsed", { usage, quota });
+        } catch {
+          // ignore
+        }
+
+        if (i < retries - 1) await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
 
     if (langSel) langSel.value = getLangPreference();
     langSel?.addEventListener("change", () => {
@@ -705,11 +759,19 @@ export async function initController() {
     });
 
     btnTilesClear?.addEventListener("click", async () => {
-      if (!confirm(t("settings.clearOfflineConfirm"))) return;
+      const ok = await confirmAction({
+        title: t("settings.clearOffline"),
+        message: t("settings.clearOfflineConfirm"),
+        okText: t("confirm.delete"),
+        cancelText: t("confirm.cancel"),
+        destructive: true
+      });
+      if (!ok) return;
       showMicroprogress(t("settings.clearing"));
       try {
         await sw.deleteAllTiles();
         showToast(t("settings.cleared"));
+        await refreshStorageInfo({ retries: 4 });
       } catch (e) {
         showToast(e?.message || t("settings.clearFailed"));
       } finally {
@@ -726,6 +788,7 @@ export async function initController() {
         saveSettings(settings);
         const res = await sw.pruneTilesOlderThan({ maxAgeSeconds: seconds });
         showToast(t("settings.pruned", { count: res.deleted }));
+        await refreshStorageInfo({ retries: 3 });
       } catch (e) {
         showToast(e?.message || t("settings.pruneFailed"));
       } finally {
@@ -733,26 +796,22 @@ export async function initController() {
       }
     });
 
-    if ("storage" in navigator && "estimate" in navigator.storage) {
-      navigator.storage
-        .estimate()
-        .then((e) => {
-          const usage = e.usage ? (e.usage / (1024 * 1024)).toFixed(1) : "?";
-          const quota = e.quota ? (e.quota / (1024 * 1024)).toFixed(0) : "?";
-          if (storageInfo) storageInfo.textContent = t("settings.spaceUsed", { usage, quota });
-        })
-        .catch(() => {});
-    }
+    refreshStorageInfo({ retries: 2 });
   }
 
-  btnPanel.addEventListener("click", () => {
+  function togglePanelFromButton() {
     const open = !panel.classList.contains("open");
     setPanelOpen(open);
     mapView.invalidateSizeSoon();
+  }
+
+  btnPanel.addEventListener("click", () => {
+    togglePanelFromButton();
   });
-  btnPanelClose.addEventListener("click", () => {
-    setPanelOpen(false);
-    mapView.invalidateSizeSoon();
+  btnPanel.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    togglePanelFromButton();
   });
   backdrop.addEventListener("click", () => {
     if (settingsDialog.open || confirmDialog.open) return;
@@ -793,13 +852,6 @@ export async function initController() {
   btnLocate.addEventListener("click", () => {
     if (state.geoWatchId == null) startGpsWatch();
     else stopGpsWatch();
-  });
-  btnFollow.addEventListener("click", () => {
-    if (state.geoWatchId == null) return;
-    state.followGps = !state.followGps;
-    btnFollow.classList.toggle("outline", !state.followGps);
-    btnFollow.setAttribute("aria-pressed", String(state.followGps));
-    if (state.followGps) mapView.panToGps();
   });
 
   sw.onProgress((p) => {
