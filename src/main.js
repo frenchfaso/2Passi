@@ -12,6 +12,7 @@ document.querySelector("#app")?.append(app);
 
 const updateSW = registerSW({
   immediate: true,
+  scope: import.meta.env.BASE_URL,
   onNeedRefresh() {
     const host = document.querySelector("#toastHost");
     if (!host) return;

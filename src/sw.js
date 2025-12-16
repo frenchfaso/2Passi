@@ -13,7 +13,9 @@ cleanupOutdatedCaches();
 
 precacheAndRoute(self.__WB_MANIFEST);
 
-registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
+const scopePath = new URL(self.registration.scope).pathname;
+const scopeBase = scopePath.endsWith("/") ? scopePath : `${scopePath}/`;
+registerRoute(new NavigationRoute(createHandlerBoundToURL(`${scopeBase}index.html`)));
 
 const TILE_CACHE = "tiles-v1";
 
