@@ -37,6 +37,10 @@ export function createAppRoot() {
 	        <nav class="panel-menu" aria-label="${t("app.actions")}">
 	          <button id="btnOpen" type="button">${t("app.openGpx")}</button>
 	          <button id="btnSettings" type="button" class="secondary">${t("app.settings")}</button>
+            <small class="menu-attribution">${t("settings.leafletAttribution", {
+              leaflet:
+                '<a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>'
+            })}</small>
 	        </nav>
 	      </div>
 	    </aside>
@@ -98,7 +102,7 @@ export function createAppRoot() {
 	          <h3 id="renameTitle">${t("track.renameTitle")}</h3>
 	        </header>
 	        <label>
-	          ${t("track.renameLabel")}
+	          <span id="renameLabelText">${t("track.renameLabel")}</span>
 	          <input id="renameInput" type="text" autocomplete="off" spellcheck="false" maxlength="120" />
 	        </label>
 	        <footer>

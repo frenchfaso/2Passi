@@ -7,7 +7,7 @@ import { openAppDb } from "./lib/db";
 import { loadSettings, saveSettings, getDefaultSettings } from "./lib/settings";
 import { createSwClient } from "./lib/swClient";
 import { showToast } from "./lib/toast";
-import { getLangPreference, setLang, t } from "./lib/i18n";
+import { getLang, getLangPreference, setLang, t } from "./lib/i18n";
 
 const MAX_FILE_SIZE_MB = 30;
 const GPS_STALE_AFTER_MS = 12_000;
@@ -56,11 +56,57 @@ export async function initController() {
 
   const btnFit = byId("btnFit");
   const btnLocate = byId("btnLocate");
+  const mapEl = byId("map");
+  const chartEl = byId("chart");
 
   const db = await openAppDb();
   const sw = createSwClient();
 
   let settings = loadSettings() ?? getDefaultSettings();
+
+  function applyTranslationsToStaticUI() {
+    document.documentElement.lang = getLang();
+
+    btnPanel.setAttribute("aria-label", t("app.toggleMenu"));
+    btnPanel.setAttribute("title", t("app.menu"));
+    panel.setAttribute("aria-label", t("app.menu"));
+    historyHost.setAttribute("aria-label", t("app.history"));
+    panel.querySelector(".panel-menu")?.setAttribute("aria-label", t("app.actions"));
+
+    byId("btnOpen").textContent = t("app.openGpx");
+    byId("btnSettings").textContent = t("app.settings");
+
+    mapEl.setAttribute("aria-label", t("app.map"));
+    chartEl.setAttribute("aria-label", t("app.elevationChart"));
+    btnFit.textContent = t("app.fit");
+    btnLocate.textContent = t("app.gps");
+
+    const settingsTitle = byId("settingsTitle");
+    settingsTitle.textContent = t("settings.title");
+    byId("btnSettingsClose").setAttribute("aria-label", t("settings.close"));
+
+    currentTitle.setAttribute("aria-label", t("track.renameAria"));
+    currentTitle.setAttribute("title", t("track.renameAria"));
+
+    byId("confirmTitle").textContent = t("confirm.title");
+    byId("btnConfirmClose").setAttribute("aria-label", t("app.close"));
+    byId("btnConfirmCancel").textContent = t("confirm.cancel");
+    byId("btnConfirmOk").textContent = t("confirm.delete");
+
+    byId("renameTitle").textContent = t("track.renameTitle");
+    const renameLabelText = document.getElementById("renameLabelText");
+    if (renameLabelText) renameLabelText.textContent = t("track.renameLabel");
+    byId("btnRenameClose").setAttribute("aria-label", t("app.close"));
+    byId("btnRenameCancel").textContent = t("confirm.cancel");
+    byId("btnRenameSave").textContent = t("track.renameSave");
+
+    const leafletLink =
+      '<a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>';
+    const menuAttribution = panel.querySelector(".menu-attribution");
+    if (menuAttribution) {
+      menuAttribution.innerHTML = t("settings.leafletAttribution", { leaflet: leafletLink });
+    }
+  }
 
   async function maybeAutoPruneTiles() {
     const now = Date.now();
@@ -844,10 +890,6 @@ export async function initController() {
 	        <div class="settings-tiles-footer">
 	          <button class="secondary" id="btnTilesClear" type="button">${t("settings.clearOffline")}</button>
 	          <small id="storageInfo"></small>
-            <small class="settings-attribution">${t("settings.leafletAttribution", {
-              leaflet:
-                '<a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>'
-            })}</small>
 	        </div>
 	      </form>
 	    `;
@@ -887,9 +929,13 @@ export async function initController() {
     }
 
     if (langSel) langSel.value = getLangPreference();
-    langSel?.addEventListener("change", () => {
+    langSel?.addEventListener("change", async () => {
       setLang(langSel.value);
-      window.location.reload();
+      applyTranslationsToStaticUI();
+      renderSettings();
+      applyUnitSystemToCurrentTrack();
+      await refreshHistory();
+      settingsBody.querySelector("#setLang")?.focus?.();
     });
 
     if (unitSel) unitSel.value = settings.unitSystem || "metric";
@@ -1087,6 +1133,7 @@ export async function initController() {
   });
 
   await refreshHistory();
+  applyTranslationsToStaticUI();
   renderSettings();
 
   const openedViaLaunchQueue = await Promise.race([
