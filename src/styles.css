@@ -68,6 +68,11 @@ body {
   line-height: 0;
   font-size: 0;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.topbar-logo-btn:focus {
+  outline: none;
 }
 
 .topbar-logo-wrap {
@@ -220,7 +225,8 @@ body {
 }
 
 .chart-meta {
-  color: var(--pico-muted-color);
+  color: color-mix(in srgb, var(--pico-color) 70%, var(--pico-muted-color));
+  font-weight: 600;
 }
 
 .chart {
@@ -231,6 +237,12 @@ body {
 
 .chart .u-over {
   touch-action: none;
+}
+
+.chart .uplot,
+.chart .u-axis,
+.chart .u-legend {
+  color: rgba(71, 85, 105, 0.95);
 }
 
 .chart-cursor {
@@ -389,11 +401,14 @@ body {
 
 .microprogress {
   position: fixed;
-  top: 0.75rem;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 1200;
   margin: 0;
+  width: min(520px, calc(100% - 2rem));
+  text-align: center;
+  pointer-events: none;
 }
 
 #settingsDialog article {

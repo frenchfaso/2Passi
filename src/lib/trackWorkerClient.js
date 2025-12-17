@@ -23,7 +23,7 @@ export function createTrackWorkerClient(workerUrl) {
 
   return {
     async processTrack({ id, lat, lon, ele, timeMs }) {
-      const transfer = [lat.buffer, lon.buffer, ele.buffer, timeMs.buffer];
+      const transfer = [lat.buffer, lon.buffer, ele.buffer];
       const res = await request(
         "PROCESS_TRACK",
         {

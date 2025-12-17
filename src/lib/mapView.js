@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { createInertia } from "./inertia";
 
 export function createMapView(
   container,
@@ -86,12 +87,66 @@ export function createMapView(
   let trackProjZoom = null;
   let trackZoomListener = null;
   let cursorSnapSegIndex = null;
+  let lastCursorLatLng = null;
 
   let gpsMarker = null;
   let gpsPulseMarker = null;
   let gpsAccuracy = null;
   let lastGps = null;
   let gpsStale = false;
+
+  function segParamFromLatLng(latlng, { centerIndex, windowSize } = {}) {
+    if (!trackLatLngs || trackLatLngs.length < 2) return null;
+    ensureProjectedTrack();
+    if (!trackProj) return null;
+    const zoom = trackProjZoom ?? map.getZoom();
+    const p = map.project(latlng, zoom);
+    const best = snapProjectedToTrack(p, { centerIndex, windowSize });
+    if (!best) return null;
+    cursorSnapSegIndex = best.segIndex;
+    return { segIndex: best.segIndex, t: best.t, param: best.segIndex + best.t, x: best.x, y: best.y, zoom };
+  }
+
+  function latLngFromSegParam(param) {
+    if (!trackLatLngs || trackLatLngs.length < 2) return null;
+    ensureProjectedTrack();
+    if (!trackProj) return null;
+    const lastSeg = trackProj.length - 2;
+    const clamped = clamp(param, 0, lastSeg + 1);
+    const segIndex = clamp(Math.floor(clamped), 0, lastSeg);
+    const t = clamp(clamped - segIndex, 0, 1);
+    cursorSnapSegIndex = segIndex;
+    const a = trackProj[segIndex];
+    const b = trackProj[segIndex + 1];
+    const x = a.x + (b.x - a.x) * t;
+    const y = a.y + (b.y - a.y) * t;
+    const zoom = trackProjZoom ?? map.getZoom();
+    return map.unproject(L.point(x, y), zoom);
+  }
+
+  const cursorInertia = createInertia({
+    sampleWindowMs: 140,
+    startVelocityThreshold: 0.004,
+    stopVelocityThreshold: 0.0012,
+    tauMs: 220,
+    maxDurationMs: 650,
+    getBounds() {
+      ensureProjectedTrack();
+      if (!trackProj || trackProj.length < 2) return null;
+      return { min: 0, max: trackProj.length - 1 };
+    },
+    apply(param) {
+      const ll = latLngFromSegParam(param);
+      if (!ll) return false;
+      lastCursorLatLng = ll;
+      cursorHandle?.setLatLng(ll);
+      cursorMarker?.setLatLng(ll);
+      onCursorDragMove?.(ll);
+    },
+    onDone() {
+      if (lastCursorLatLng) onCursorDragEnd?.(lastCursorLatLng);
+    }
+  });
 
   function gpsMarkerStyle() {
     const fillColor = gpsStale ? "rgba(148, 163, 184, 1)" : "rgba(34, 197, 94, 0.9)";
@@ -120,6 +175,7 @@ export function createMapView(
   }
 
   function clearTrack() {
+    cursorInertia.cancel();
     trackLine?.remove();
     trackLine = null;
     startMarker?.remove();
@@ -134,6 +190,7 @@ export function createMapView(
     trackProj = null;
     trackProjZoom = null;
     cursorSnapSegIndex = null;
+    lastCursorLatLng = null;
     if (trackZoomListener) {
       map.off("zoomend", trackZoomListener);
       trackZoomListener = null;
@@ -214,34 +271,39 @@ export function createMapView(
 
     let adjusting = false;
     cursorHandle.on("dragstart", () => {
+      cursorInertia.cancel();
+      cursorInertia.resetSamples();
       // Initialize segment index from current cursor position to avoid shortcut jumps.
       updateCursorSnapIndexFromLatLng(cursorHandle.getLatLng(), { windowSize: trackProj?.length ?? undefined });
-      const snapped = snapLatLngToTrack(cursorHandle.getLatLng(), { centerIndex: cursorSnapSegIndex ?? 0, windowSize: 200 });
+      const meta = segParamFromLatLng(cursorHandle.getLatLng(), { centerIndex: cursorSnapSegIndex ?? 0, windowSize: 200 });
+      const snapped = meta ? map.unproject(L.point(meta.x, meta.y), meta.zoom) : cursorHandle.getLatLng();
+      lastCursorLatLng = snapped;
       cursorHandle.setLatLng(snapped);
       cursorMarker?.setLatLng(snapped);
+      if (meta) cursorInertia.sample(meta.param);
       onCursorDragStart?.();
     });
     cursorHandle.on("drag", () => {
       if (adjusting) return;
       const raw = cursorHandle.getLatLng();
-      const snapped = snapLatLngToTrack(raw, {
-        centerIndex: cursorSnapSegIndex ?? 0,
-        windowSize: 80
-      });
+      const meta = segParamFromLatLng(raw, { centerIndex: cursorSnapSegIndex ?? 0, windowSize: 80 });
+      const snapped = meta ? map.unproject(L.point(meta.x, meta.y), meta.zoom) : raw;
       adjusting = true;
+      lastCursorLatLng = snapped;
       cursorHandle.setLatLng(snapped);
       cursorMarker?.setLatLng(snapped);
       adjusting = false;
+      if (meta) cursorInertia.sample(meta.param);
       onCursorDragMove?.(snapped);
     });
     cursorHandle.on("dragend", () => {
-      const snapped = snapLatLngToTrack(cursorHandle.getLatLng(), {
-        centerIndex: cursorSnapSegIndex ?? 0,
-        windowSize: 120
-      });
+      const meta = segParamFromLatLng(cursorHandle.getLatLng(), { centerIndex: cursorSnapSegIndex ?? 0, windowSize: 120 });
+      const snapped = meta ? map.unproject(L.point(meta.x, meta.y), meta.zoom) : cursorHandle.getLatLng();
+      lastCursorLatLng = snapped;
       cursorHandle.setLatLng(snapped);
       cursorMarker?.setLatLng(snapped);
-      onCursorDragEnd?.(snapped);
+      if (meta) cursorInertia.sample(meta.param);
+      if (!cursorInertia.startFromSamples()) onCursorDragEnd?.(snapped);
     });
   }
 
@@ -251,8 +313,10 @@ export function createMapView(
   }
 
   function setCursor({ lat, lon }) {
+    cursorInertia.cancel();
     if (!cursorMarker) return;
     const ll = L.latLng(lat, lon);
+    lastCursorLatLng = ll;
     cursorMarker.setLatLng(ll);
     cursorHandle?.setLatLng(ll);
     // Keep internal index in sync cheaply; the cursor we get here is already on-track.

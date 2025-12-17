@@ -20,6 +20,10 @@ function byId(id) {
   return el;
 }
 
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
 export async function initController() {
   const btnPanel = byId("btnPanel");
   const panel = byId("panel");
@@ -110,6 +114,28 @@ export async function initController() {
       state.cursor = { kind: "vertex", idx };
       updateCursorFromTrackVertex(idx, { source: "chart" });
     }
+  });
+
+  chartView.setMetaFormatter(({ idx, xVal }) => {
+    const track = state.currentTrack;
+    if (!track) return "";
+    const unit = track.unit || (settings.unitSystem === "imperial" ? "mi" : "km");
+    const distText = formatDistance(Number(xVal) || 0, unit);
+
+    const totalDist = track.dist?.length ? track.dist[track.dist.length - 1] : track.trackLength || 0;
+    const frac = totalDist > 0 ? clamp((Number(xVal) || 0) / totalDist, 0, 1) : 0;
+    let remainingSeconds = Math.round((track.estimatedTimeSeconds || 0) * (1 - frac));
+    if (track.stats?.hasTime && track.timeMs && idx != null && idx >= 0 && idx < track.timeMs.length) {
+      const tMs = track.timeMs[idx];
+      const endMs = track.stats.endTimeMs;
+      if (Number.isFinite(tMs) && tMs > 0 && Number.isFinite(endMs) && endMs > tMs) {
+        remainingSeconds = Math.round((endMs - tMs) / 1000);
+      }
+    }
+    remainingSeconds = Math.max(0, remainingSeconds);
+    const remainingText = formatDuration(remainingSeconds);
+
+    return `${distText} • ${remainingText}`;
   });
 
   const worker = createTrackWorkerClient(new URL("./workers/trackWorker.js", import.meta.url));
@@ -390,6 +416,9 @@ export async function initController() {
       distM,
       eleNorm,
       stats,
+      trackLength,
+      estimatedTimeSeconds,
+      timeMs: parsed.timeMs,
       unit,
       eleFactor,
       distFactor
@@ -805,12 +834,19 @@ export async function initController() {
     mapView.invalidateSizeSoon();
   }
 
+  let panelToggleFromPointer = false;
+  btnPanel.addEventListener("pointerdown", () => {
+    panelToggleFromPointer = true;
+  });
   btnPanel.addEventListener("click", () => {
     togglePanelFromButton();
+    if (panelToggleFromPointer) btnPanel.blur?.();
+    panelToggleFromPointer = false;
   });
   btnPanel.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
+    panelToggleFromPointer = false;
     togglePanelFromButton();
   });
   backdrop.addEventListener("click", () => {

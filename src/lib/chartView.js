@@ -1,4 +1,5 @@
 import uPlot from "uplot";
+import { createInertia } from "./inertia";
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -13,8 +14,31 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
   let markerEl = null;
   let markerOverride = null;
   let touchActive = false;
+  let formatMeta = null;
+  let inertiaTop = 0;
+  const inertia = createInertia({
+    sampleWindowMs: 120,
+    startVelocityThreshold: 0.05,
+    stopVelocityThreshold: 0.01,
+    tauMs: 180,
+    maxDurationMs: 0,
+    getBounds() {
+      if (!u) return null;
+      const w = u.over?.clientWidth ?? 0;
+      if (!(w > 0)) return null;
+      return { min: 0, max: w };
+    },
+    apply(left) {
+      if (!u) return false;
+      u.setCursor({ left, top: inertiaTop });
+    },
+    onDone() {
+      onUserDragEnd?.();
+    }
+  });
 
   function destroyPlot() {
+    inertia.cancel();
     if (u) u.destroy();
     u = null;
     data = null;
@@ -34,6 +58,10 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
     if (metaHost) metaHost.textContent = "";
   }
 
+  function setMetaFormatter(fn) {
+    formatMeta = typeof fn === "function" ? fn : null;
+  }
+
   function setData(x, y, { distLabel, elevLabel }) {
     destroyPlot();
     container.innerHTML = "";
@@ -49,19 +77,21 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
       legend: { show: false },
       cursor: {
         show: true,
+        x: true,
+        y: false,
         drag: { setScale: false, x: false, y: false },
         points: { show: false }
       },
       axes: [
         {
           label: distLabel,
-          stroke: "rgba(229,231,235,0.7)",
-          grid: { stroke: "rgba(148,163,184,0.12)" }
+          stroke: "rgba(71,85,105,0.9)",
+          grid: { stroke: "rgba(148,163,184,0.16)" }
         },
         {
           label: elevLabel,
-          stroke: "rgba(229,231,235,0.7)",
-          grid: { stroke: "rgba(148,163,184,0.12)" }
+          stroke: "rgba(71,85,105,0.9)",
+          grid: { stroke: "rgba(148,163,184,0.16)" }
         }
       ],
       scales: {
@@ -87,7 +117,11 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
             const xVal = markerOverride?.xVal ?? xValRaw;
             const yVal = markerOverride?.yVal ?? yValRaw;
 
-            if (metaHost) metaHost.textContent = `${xVal.toFixed(2)} • ${yVal.toFixed(0)}`;
+            if (metaHost) {
+              const next =
+                formatMeta?.({ idx, xVal, yVal, xValRaw, yValRaw }) ?? `${xVal.toFixed(2)} • ${yVal.toFixed(0)}`;
+              metaHost.textContent = next ?? "";
+            }
 
             if (markerEl) {
               const left = uPlotInstance.valToPos(xVal, "x");
@@ -118,6 +152,8 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
     u.over.addEventListener("pointerdown", (e) => {
       if (touchActive && e.pointerType === "touch") return;
       e.preventDefault();
+      inertia.cancel();
+      inertia.resetSamples();
       pointerDown = true;
       try {
         u.over.setPointerCapture(e.pointerId);
@@ -143,13 +179,14 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
       } catch {
         // ignore
       }
-      onUserDragEnd?.();
+      if (!inertia.startFromSamples()) onUserDragEnd?.();
     });
     u.over.addEventListener("pointercancel", (e) => {
       if (!pointerDown) return;
       if (touchActive && e.pointerType === "touch") return;
       e.preventDefault();
       pointerDown = false;
+      inertia.cancel();
       onUserDragEnd?.();
     });
 
@@ -157,6 +194,8 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
       "touchstart",
       (e) => {
         if (!u) return;
+        inertia.cancel();
+        inertia.resetSamples();
         touchActive = true;
         pointerDown = true;
         e.preventDefault();
@@ -185,7 +224,7 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
         e.preventDefault();
         pointerDown = false;
         touchActive = false;
-        onUserDragEnd?.();
+        if (!inertia.startFromSamples()) onUserDragEnd?.();
       },
       { passive: false }
     );
@@ -196,6 +235,7 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
         e.preventDefault();
         pointerDown = false;
         touchActive = false;
+        inertia.cancel();
         onUserDragEnd?.();
       },
       { passive: false }
@@ -215,10 +255,13 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
     const rect = u.over.getBoundingClientRect();
     const left = clamp(clientX - rect.left, 0, rect.width);
     const top = clamp(clientY - rect.top, 0, rect.height);
+    inertiaTop = top;
+    if (pointerDown) inertia.sample(left);
     u.setCursor({ left, top });
   }
 
   function setCursorIndex(idx) {
+    inertia.cancel();
     if (!u || !data) return;
     const safeIdx = clamp(idx, 0, data[0].length - 1);
     const x = data[0][safeIdx];
@@ -226,6 +269,7 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
   }
 
   function setCursorDist(xVal) {
+    inertia.cancel();
     if (!u) return;
     const left = u.valToPos(xVal, "x");
     const top = u.over.clientHeight ? u.over.clientHeight / 2 : 0;
@@ -233,6 +277,7 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
   }
 
   function setCursorXY(xVal, yVal) {
+    inertia.cancel();
     if (!u) return;
     markerOverride = { xVal, yVal };
     const left = u.valToPos(xVal, "x");
@@ -258,6 +303,7 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
     setCursorIndex,
     setCursorDist,
     setCursorXY,
+    setMetaFormatter,
     resizeSoon
   };
 }

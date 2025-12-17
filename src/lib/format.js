@@ -13,17 +13,17 @@ export function formatDateTime(ts) {
 }
 
 export function formatDuration(seconds) {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  if (!Number.isFinite(seconds) || seconds < 0) return "—";
   const s = Math.round(seconds);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
+  if (h === 0 && m === 0) return "0m";
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
 }
 
 export function formatDistance(value, unit) {
-  if (!Number.isFinite(value) || value <= 0) return `—`;
+  if (!Number.isFinite(value) || value < 0) return `—`;
   const rounded = value < 10 ? value.toFixed(2) : value.toFixed(1);
   return `${rounded} ${unit}`;
 }
-
