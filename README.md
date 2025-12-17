@@ -1,20 +1,29 @@
-# 2Passi
-Lightweight, offline-first GPX viewer PWA (no backend) with map + elevation chart and a history side panel.
+<p align="center">
+  <img src="public/icons/2passi.png" width="96" alt="2Passi logo" />
+</p>
 
-## Prerequisites
-- Node.js + npm (this repo is set up to work with the `conda` env `2passi`).
+<h1 align="center">2Passi</h1>
 
-## Setup
-- Install deps: `conda run -n 2passi npm install`
+<p align="center">
+  Offline-first GPX viewer PWA with map + elevation chart.
+  No backend: your data stays on your device.
+</p>
 
-## Run
-- Dev server: `conda run -n 2passi npm run dev`
-- Production build: `conda run -n 2passi npm run build`
-- Preview build (recommended to test PWA/SW): `conda run -n 2passi npm run preview`
+## Key features
+- GPX import + track history
+- Synced marker between map and elevation chart (drag from the chart)
+- GPS with “snap to track” when you’re close
+- Offline maps cache with storage cleanup
+- Metric/imperial units + track renaming
 
-## Deploy (GitHub Pages)
-- This repo includes a workflow that builds and deploys `dist/` to GitHub Pages on pushes to `main`.
-- In GitHub: `Settings → Pages → Build and deployment → Source: GitHub Actions`.
+## Quick start
+1. Open the menu → import a `.gpx` file or pick one from history.
+2. Drag on the elevation chart to move the marker.
+3. Enable GPS to see your position and (if close) snap to the track.
+4. In Settings you can change units and manage offline map cache.
 
-## Notes
-- Service Worker is enabled in production builds; offline tiles are cached at runtime and can be managed in Settings.
+<br />
+
+<p align="center">
+  <img src="2Passi_screenshot.png" width="360" alt="2Passi screenshot" />
+</p>
