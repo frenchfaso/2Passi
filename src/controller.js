@@ -96,10 +96,11 @@ export async function initController() {
   const chartView = createChartView(byId("chart"), chartMeta, {
     onUserDragStart() {
       state.isUserDragging = true;
+      cancelUserResnap();
     },
     onUserDragEnd() {
       state.isUserDragging = false;
-      maybeResumeAutoSnap();
+      scheduleUserResnapIfEligible();
     },
     onCursorIndexChange(idx) {
       if (ignoreChartCursorEvents > 0) return;
@@ -151,6 +152,33 @@ export async function initController() {
   function lockGpsFollow() {
     state.followGps = false;
     state.followGpsLocked = true;
+  }
+
+  const USER_RESNAP_DELAY_MS = 3000;
+  let userResnapTimer = null;
+  let userResnapToken = 0;
+
+  function cancelUserResnap() {
+    clearTimeout(userResnapTimer);
+    userResnapTimer = null;
+  }
+
+  function scheduleUserResnapIfEligible() {
+    cancelUserResnap();
+    if (state.geoWatchId == null) return;
+    if (state.gpsStale) return;
+    if (!state.gpsNearTrack || !state.lastSnapResult?.near) return;
+    if (state.isUserDragging) return;
+    const token = ++userResnapToken;
+    userResnapTimer = setTimeout(() => {
+      userResnapTimer = null;
+      if (token !== userResnapToken) return;
+      if (state.geoWatchId == null) return;
+      if (state.gpsStale) return;
+      if (state.isUserDragging) return;
+      if (!state.gpsNearTrack || !state.lastSnapResult?.near) return;
+      applySnapResult(state.lastSnapResult);
+    }, USER_RESNAP_DELAY_MS);
   }
 
   let ignoreChartCursorEvents = 0;
@@ -354,7 +382,16 @@ export async function initController() {
       if (title) title.textContent = track.name || t("history.untitled");
 
       if (meta) {
-        const dist = formatDistance(track.trackLength, track.trackLengthUnit);
+        const unit = settings.unitSystem === "imperial" ? "mi" : "km";
+        const distFactor = unit === "mi" ? 1 / 1609.344 : 1 / 1000;
+        const trackLengthM = Number.isFinite(track.trackLengthM)
+          ? track.trackLengthM
+          : Number.isFinite(track.trackLength) && track.trackLengthUnit === "mi"
+            ? track.trackLength * 1609.344
+            : Number.isFinite(track.trackLength) && track.trackLengthUnit === "km"
+              ? track.trackLength * 1000
+              : 0;
+        const dist = formatDistance(trackLengthM * distFactor, unit);
         const eta = formatDuration(track.estimatedTimeSeconds);
         meta.textContent = `${dist} • ${eta}`;
       }
@@ -420,6 +457,34 @@ export async function initController() {
     document.title = trackName ? `${trackName} — 2Passi` : "2Passi";
   }
 
+  function applyUnitSystemToCurrentTrack() {
+    const track = state.currentTrack;
+    if (!track?.distM || !track?.eleNorm) return;
+
+    const unit = settings.unitSystem === "imperial" ? "mi" : "km";
+    const distFactor = unit === "mi" ? 1 / 1609.344 : 1 / 1000;
+    const eleFactor = settings.unitSystem === "imperial" ? 3.28084 : 1;
+
+    const dist = Array.from(track.distM, (m) => m * distFactor);
+    const elev = Array.from(track.eleNorm, (m) => m * eleFactor);
+
+    track.unit = unit;
+    track.distFactor = distFactor;
+    track.eleFactor = eleFactor;
+    track.dist = dist;
+    track.elev = elev;
+    track.trackLengthM = track.trackLengthM ?? (track.distM.length ? track.distM[track.distM.length - 1] : 0);
+    track.trackLength = track.trackLengthM * distFactor;
+
+    const prevCursor = state.cursor;
+    chartView.setData(dist, elev, {
+      distLabel: unit === "mi" ? t("chart.distanceMi") : t("chart.distanceKm"),
+      elevLabel: settings.unitSystem === "imperial" ? t("chart.elevFt") : t("chart.elevM")
+    });
+
+    if (prevCursor?.kind === "vertex") chartView.setCursorIndex(prevCursor.idx);
+  }
+
   async function renameCurrentTrack() {
     const track = state.currentTrack;
     if (!track) return;
@@ -473,8 +538,8 @@ export async function initController() {
       elevLabel: settings.unitSystem === "imperial" ? t("chart.elevFt") : t("chart.elevM")
     });
 
-    const totalDist = distM.length ? distM[distM.length - 1] : 0;
-    const trackLength = totalDist * distFactor;
+    const totalDistM = distM.length ? distM[distM.length - 1] : 0;
+    const trackLength = totalDistM * distFactor;
 
     let estimatedTimeSeconds = 0;
     if (stats.hasTime && stats.startTimeMs && stats.endTimeMs && stats.endTimeMs > stats.startTimeMs) {
@@ -492,6 +557,7 @@ export async function initController() {
       gpxBlob,
       trackLength,
       trackLengthUnit: unit,
+      trackLengthM: totalDistM,
       estimatedTimeSeconds,
       photoIds
     };
@@ -511,6 +577,7 @@ export async function initController() {
       eleNorm,
       stats,
       trackLength,
+      trackLengthM: totalDistM,
       estimatedTimeSeconds,
       timeMs: parsed.timeMs,
       unit,
@@ -608,11 +675,10 @@ export async function initController() {
     return e0 + tt * (e1 - e0);
   }
 
+  // After the user moves the cursor manually, snap back to GPS after a short delay
+  // (only if GPS is active and near the track).
   function maybeResumeAutoSnap() {
-    if (!state.gps || !state.currentTrack) return;
-    if (!state.gpsNearTrack || !state.lastSnapResult?.near) return;
-    if (state.isUserDragging) return;
-    applySnapResult(state.lastSnapResult);
+    scheduleUserResnapIfEligible();
   }
 
   function applySnapResult(res) {
@@ -633,6 +699,7 @@ export async function initController() {
     mapView.setGpsStale(next);
     if (next) {
       lockGpsFollow();
+      cancelUserResnap();
     }
   }
 
@@ -701,6 +768,7 @@ export async function initController() {
     mapView.clearGps();
     state.followGps = false;
     state.followGpsLocked = false;
+    cancelUserResnap();
     btnLocate.classList.add("outline");
     btnLocate.setAttribute("aria-pressed", "false");
   }
@@ -744,6 +812,14 @@ export async function initController() {
         </label>
 
         <label>
+          ${t("settings.unitSystem")}
+          <select id="setUnitSystem" name="unitSystem">
+            <option value="metric">${t("settings.unitMetric")}</option>
+            <option value="imperial">${t("settings.unitImperial")}</option>
+          </select>
+        </label>
+
+        <label>
           ${t("settings.timeEstimate", { paceUnit })}
           <small>${t("settings.timeEstimateHelp")}</small>
           <input id="setPace" name="pace" type="number" inputmode="decimal" min="1" step="0.1" />
@@ -776,6 +852,7 @@ export async function initController() {
     settingsForm?.addEventListener("submit", (e) => e.preventDefault());
 
     const langSel = settingsBody.querySelector("#setLang");
+    const unitSel = settingsBody.querySelector("#setUnitSystem");
     const paceInput = settingsBody.querySelector("#setPace");
     const btnTilesClear = settingsBody.querySelector("#btnTilesClear");
     const retentionSel = settingsBody.querySelector("#setTilesRetention");
@@ -809,6 +886,17 @@ export async function initController() {
     langSel?.addEventListener("change", () => {
       setLang(langSel.value);
       window.location.reload();
+    });
+
+    if (unitSel) unitSel.value = settings.unitSystem || "metric";
+    unitSel?.addEventListener("change", async () => {
+      const next = unitSel.value === "imperial" ? "imperial" : "metric";
+      if (settings.unitSystem === next) return;
+      settings.unitSystem = next;
+      saveSettings(settings);
+      renderSettings();
+      applyUnitSystemToCurrentTrack();
+      await refreshHistory();
     });
 
     if (paceInput) {

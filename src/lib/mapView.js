@@ -11,14 +11,95 @@ export function createMapView(
 
   map.attributionControl?.setPrefix("");
 
-  map.on("dragstart", (e) => {
-    if (!e?.originalEvent) return;
-    onUserNavigate?.();
-  });
-  map.on("zoomstart", (e) => {
-    if (!e?.originalEvent) return;
-    onUserNavigate?.();
-  });
+  let lastUserGestureAt = 0;
+  let suppressUserNavigateUntil = 0;
+
+  const markUserGesture = () => {
+    lastUserGestureAt = Date.now();
+  };
+
+  let pointerActive = false;
+  container.addEventListener(
+    "pointerdown",
+    () => {
+      pointerActive = true;
+    },
+    { capture: true }
+  );
+  container.addEventListener(
+    "pointerup",
+    () => {
+      pointerActive = false;
+    },
+    { capture: true }
+  );
+  container.addEventListener(
+    "pointercancel",
+    () => {
+      pointerActive = false;
+    },
+    { capture: true }
+  );
+  container.addEventListener(
+    "pointerleave",
+    () => {
+      pointerActive = false;
+    },
+    { capture: true }
+  );
+  container.addEventListener(
+    "pointermove",
+    () => {
+      if (pointerActive) markUserGesture();
+    },
+    { capture: true, passive: true }
+  );
+
+  let touchActive = false;
+  container.addEventListener(
+    "touchstart",
+    (e) => {
+      touchActive = true;
+      if (e?.touches?.length > 1) markUserGesture();
+    },
+    { capture: true, passive: true }
+  );
+  container.addEventListener(
+    "touchend",
+    () => {
+      touchActive = false;
+    },
+    { capture: true, passive: true }
+  );
+  container.addEventListener(
+    "touchcancel",
+    () => {
+      touchActive = false;
+    },
+    { capture: true, passive: true }
+  );
+  container.addEventListener(
+    "touchmove",
+    () => {
+      if (touchActive) markUserGesture();
+    },
+    { capture: true, passive: true }
+  );
+
+  container.addEventListener("wheel", markUserGesture, { capture: true, passive: true });
+
+  function maybeUserNavigate(e) {
+    const now = Date.now();
+    const isUserGesture = Boolean(e?.originalEvent) || now - lastUserGestureAt < 600;
+    if (isUserGesture) {
+      onUserNavigate?.();
+      return;
+    }
+    if (now < suppressUserNavigateUntil) return;
+  }
+
+  map.on("movestart", maybeUserNavigate);
+  map.on("zoomstart", maybeUserNavigate);
 
   let tileLayer = null;
   function setTileProvider(template, attribution) {
@@ -105,6 +186,7 @@ export function createMapView(
 
   function fitToTrack() {
     if (!trackLine) return;
+    suppressUserNavigateUntil = Date.now() + 900;
     map.fitBounds(trackLine.getBounds(), { padding: [20, 20] });
   }
 
@@ -165,6 +247,7 @@ export function createMapView(
 
   function panToGps() {
     if (!lastGps) return;
+    suppressUserNavigateUntil = Date.now() + 900;
     map.panTo([lastGps.lat, lastGps.lon], { animate: true, duration: 0.25 });
   }
 

@@ -4,8 +4,8 @@ export function getDefaultSettings() {
   return {
     unitSystem: "metric",
     pace: {
-      secondsPerKm: 6 * 60,
-      secondsPerMi: 10 * 60
+      secondsPerKm: 12 * 60,
+      secondsPerMi: 20 * 60
     },
     tile: {
       template: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
