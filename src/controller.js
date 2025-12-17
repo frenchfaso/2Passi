@@ -100,12 +100,8 @@ export async function initController() {
     byId("btnRenameCancel").textContent = t("confirm.cancel");
     byId("btnRenameSave").textContent = t("track.renameSave");
 
-    const leafletLink =
-      '<a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>';
-    const menuAttribution = panel.querySelector(".menu-attribution");
-    if (menuAttribution) {
-      menuAttribution.innerHTML = t("settings.leafletAttribution", { leaflet: leafletLink });
-    }
+    const creditsTitle = document.getElementById("menuCreditsTitle");
+    if (creditsTitle) creditsTitle.textContent = t("app.creditsTitle");
   }
 
   async function maybeAutoPruneTiles() {
@@ -156,7 +152,7 @@ export async function initController() {
     }
   });
 
-  chartView.setMetaFormatter(({ idx, xVal }) => {
+  chartView.setMetaFormatter(({ idx, xVal, yVal }) => {
     const track = state.currentTrack;
     if (!track) return "";
     const unit = track.unit || (settings.unitSystem === "imperial" ? "mi" : "km");
@@ -175,7 +171,17 @@ export async function initController() {
     remainingSeconds = Math.max(0, remainingSeconds);
     const remainingText = formatDuration(remainingSeconds);
 
-    return `${distText} • ${remainingText}`;
+    const parts = [distText, remainingText];
+
+    const elevUnit = settings.unitSystem === "imperial" ? "ft" : "m";
+    const elev = Number(yVal);
+    if (Number.isFinite(elev)) {
+      const v = Math.round(elev);
+      const sign = v > 0 ? "+" : "";
+      parts.push(`Δ ${sign}${v} ${elevUnit}`);
+    }
+
+    return parts.join(" • ");
   });
 
   const worker = createTrackWorkerClient(new URL("./workers/trackWorker.js", import.meta.url));

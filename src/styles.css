@@ -249,15 +249,20 @@ body {
 
 .chart-header {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.3rem;
   padding: 0.5rem 0.75rem;
   border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
 }
 
 .chart-header .track-title {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  width: 100%;
+  text-align: center;
+  line-height: 1.05;
+  margin: 0;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -267,7 +272,10 @@ body {
 .chart-meta {
   color: color-mix(in srgb, var(--pico-color) 70%, var(--pico-muted-color));
   font-weight: 600;
-  margin-left: auto;
+  align-self: center;
+  text-align: center;
+  line-height: 1.05;
+  margin: 0;
   flex: 0 0 auto;
 }
 
@@ -489,19 +497,30 @@ body {
   text-align: center;
 }
 
- .panel-menu .menu-attribution {
+.panel-menu .menu-credits {
   grid-column: 1 / -1;
-  display: block;
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
   text-align: center;
-  color: var(--pico-muted-color);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.panel-menu .menu-attribution a {
-  color: inherit;
+.panel-menu .menu-credits-title {
+  display: block;
+  color: var(--pico-muted-color);
+  line-height: 1.1;
+}
+
+.panel-menu .menu-credits-links {
+  display: block;
+  line-height: 1.1;
+}
+
+.panel-menu .menu-credits-links a {
+  color: var(--pico-primary);
+  text-decoration: underline;
+}
+
+.panel-menu .menu-credits-links a:hover {
+  color: color-mix(in srgb, var(--pico-primary) 85%, black);
 }
 
 @keyframes gps-pulse {

@@ -13,6 +13,7 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
   let pointerDown = false;
   let markerEl = null;
   let markerOverride = null;
+  let suppressCursorCallback = false;
   let touchActive = false;
   let formatMeta = null;
   let inertiaTop = 0;
@@ -124,14 +125,22 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
             }
 
             if (markerEl) {
-              const left = uPlotInstance.valToPos(xVal, "x");
-              const top = uPlotInstance.valToPos(yVal, "y");
+              const leftRaw = uPlotInstance.valToPos(xVal, "x");
+              const topRaw = uPlotInstance.valToPos(yVal, "y");
+
+              const w = uPlotInstance.over?.clientWidth ?? 0;
+              const h = uPlotInstance.over?.clientHeight ?? 0;
+              const pad = 8;
+
+              const left = Number.isFinite(leftRaw) ? clamp(leftRaw, pad, Math.max(pad, w - pad)) : pad;
+              const top = Number.isFinite(topRaw) ? clamp(topRaw, pad, Math.max(pad, h - pad)) : pad;
+
               markerEl.style.left = `${left}px`;
               markerEl.style.top = `${top}px`;
             }
 
             markerOverride = null;
-            onCursorIndexChange?.(idx);
+            if (!suppressCursorCallback) onCursorIndexChange?.(idx);
           }
         ]
       }
@@ -265,7 +274,8 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
     if (!u || !data) return;
     const safeIdx = clamp(idx, 0, data[0].length - 1);
     const x = data[0][safeIdx];
-    setCursorDist(x);
+    const y = data[1][safeIdx];
+    setCursorXY(x, y);
   }
 
   function setCursorDist(xVal) {
@@ -295,6 +305,18 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
     const width = Math.max(10, container.clientWidth);
     const height = Math.max(10, container.clientHeight);
     u.setSize({ width, height });
+
+    const idx = u.cursor?.idx;
+    if (!data || idx == null || idx < 0 || !Number.isFinite(idx)) return;
+    const safeIdx = clamp(idx, 0, data[0].length - 1);
+    const xVal = data[0][safeIdx];
+    const yVal = data[1][safeIdx];
+    suppressCursorCallback = true;
+    try {
+      setCursorXY(xVal, yVal);
+    } finally {
+      suppressCursorCallback = false;
+    }
   }
 
   return {

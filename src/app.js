@@ -37,10 +37,14 @@ export function createAppRoot() {
 	        <nav class="panel-menu" aria-label="${t("app.actions")}">
 	          <button id="btnOpen" type="button">${t("app.openGpx")}</button>
 	          <button id="btnSettings" type="button" class="secondary">${t("app.settings")}</button>
-            <small class="menu-attribution">${t("settings.leafletAttribution", {
-              leaflet:
-                '<a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>'
-            })}</small>
+            <div class="menu-credits">
+              <small class="menu-credits-title" id="menuCreditsTitle">${t("app.creditsTitle")}</small>
+              <small class="menu-credits-links" id="menuCreditsLinks">
+                <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a> ·
+                <a href="https://github.com/leeoniya/uPlot" target="_blank" rel="noopener noreferrer">uPlot</a> ·
+                <a href="https://github.com/jakearchibald/idb" target="_blank" rel="noopener noreferrer">idb</a>
+              </small>
+            </div>
 	        </nav>
 	      </div>
 	    </aside>

@@ -14,7 +14,8 @@ const STRINGS = {
       elevationChart: "Grafico dislivello",
       fit: "Adatta",
       gps: "GPS",
-      follow: "Segui"
+      follow: "Segui",
+      creditsTitle: "Reso possibile dalle fantastiche"
     },
     track: {
       renameAria: "Rinomina traccia",
@@ -118,7 +119,8 @@ const STRINGS = {
       elevationChart: "Elevation chart",
       fit: "Fit",
       gps: "GPS",
-      follow: "Follow"
+      follow: "Follow",
+      creditsTitle: "Made possible by the awesome"
     },
     track: {
       renameAria: "Rename track",
@@ -222,7 +224,8 @@ const STRINGS = {
       elevationChart: "Höhenprofil-Diagramm",
       fit: "Anpassen",
       gps: "GPS",
-      follow: "Folgen"
+      follow: "Folgen",
+      creditsTitle: "Ermöglicht durch die awesome"
     },
     track: {
       renameAria: "Track umbenennen",
