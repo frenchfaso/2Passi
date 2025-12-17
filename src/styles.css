@@ -12,6 +12,13 @@ html {
   color-scheme: light;
 }
 
+/* Prevent PicoCSS font-size bump at 1024px from causing layout jumps. */
+@media (min-width: 1024px) {
+  :root {
+    --pico-font-size: 112.5%;
+  }
+}
+
 body {
   margin: 0;
   overflow: hidden;
@@ -301,9 +308,10 @@ body {
 
 .panel-content {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
   overflow-x: hidden;
   padding: 0.75rem;
 }
@@ -318,7 +326,12 @@ body {
 .history {
   display: grid;
   gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .history > article {
@@ -459,12 +472,6 @@ body {
   opacity: var(--marker-opacity);
 }
 
-.leaflet-container .cursor-handle {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
 .leaflet-container path.gps-pulse {
   transform-box: fill-box;
   transform-origin: center;
@@ -503,10 +510,6 @@ body {
     --panel-w: 360px;
   }
 
-  .panel {
-    transform: translateX(0);
-  }
-
   .backdrop {
     display: none !important;
   }
@@ -515,8 +518,12 @@ body {
     grid-template-columns: var(--panel-w) 1fr;
     grid-template-rows: auto 1fr;
     grid-template-areas:
-      "panel topbar"
+      "topbar topbar"
       "panel main";
+  }
+
+  .app.panel-collapsed {
+    grid-template-columns: 0 1fr;
   }
 
   .topbar {
@@ -527,6 +534,23 @@ body {
     grid-area: panel;
     position: static;
     width: var(--panel-w);
+    height: 100%;
+    max-height: 100%;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+
+  .app.panel-collapsed .panel {
+    width: 0;
+    border-right: 0;
+    box-shadow: none;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .app.panel-collapsed .panel-content {
+    display: none;
   }
 
   .main {
@@ -534,6 +558,6 @@ body {
   }
 
   #btnPanel {
-    cursor: default;
+    cursor: pointer;
   }
 }

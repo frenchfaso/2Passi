@@ -1,3 +1,5 @@
+import { t } from "./i18n";
+
 export function createTrackWorkerClient(workerUrl) {
   const worker = new Worker(workerUrl, { type: "module" });
 
@@ -9,14 +11,14 @@ export function createTrackWorkerClient(workerUrl) {
         if (event.data?.replyTo !== id) return;
         if (timeout) clearTimeout(timeout);
         worker.removeEventListener("message", onMessage);
-        if (event.data?.ok === false) reject(new Error(event.data?.error || "Worker error"));
+        if (event.data?.ok === false) reject(new Error(event.data?.error || t("errors.workerError")));
         else resolve(event.data);
       };
       worker.addEventListener("message", onMessage);
       worker.postMessage({ type, id, ...payload }, transfer);
       timeout = setTimeout(() => {
         worker.removeEventListener("message", onMessage);
-        reject(new Error("Worker timeout"));
+        reject(new Error(t("errors.workerTimeout")));
       }, 60000);
     });
   }

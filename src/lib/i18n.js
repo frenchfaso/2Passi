@@ -40,6 +40,11 @@ const STRINGS = {
       geoPermissionDenied: "Permesso geolocalizzazione negato."
     },
     errors: {
+      failed: "Operazione non riuscita.",
+      timeout: "Timeout.",
+      swNoController: "Service worker non disponibile.",
+      workerError: "Errore interno.",
+      workerTimeout: "Operazione troppo lenta (timeout).",
       gpxParseError: "File GPX non valido (errore parsing XML).",
       gpxNoPoints: "Nessun punto <trkpt> trovato nel GPX.",
       gpxNotEnoughPoints: "Punti validi insufficienti."
@@ -129,6 +134,11 @@ const STRINGS = {
       geoPermissionDenied: "Geolocation permission denied."
     },
     errors: {
+      failed: "Operation failed.",
+      timeout: "Timeout.",
+      swNoController: "Service worker not available.",
+      workerError: "Internal error.",
+      workerTimeout: "Operation timed out.",
       gpxParseError: "Invalid GPX file (XML parse error).",
       gpxNoPoints: "No <trkpt> points found in GPX.",
       gpxNotEnoughPoints: "Not enough valid points."
@@ -218,6 +228,11 @@ const STRINGS = {
       geoPermissionDenied: "Geolokalisierungszugriff verweigert."
     },
     errors: {
+      failed: "Vorgang fehlgeschlagen.",
+      timeout: "Zeitüberschreitung.",
+      swNoController: "Service Worker nicht verfügbar.",
+      workerError: "Interner Fehler.",
+      workerTimeout: "Zeitüberschreitung.",
       gpxParseError: "Ungültige GPX-Datei (XML-Parserfehler).",
       gpxNoPoints: "Keine <trkpt>-Punkte im GPX gefunden.",
       gpxNotEnoughPoints: "Nicht genügend gültige Punkte."

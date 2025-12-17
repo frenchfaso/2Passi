@@ -85,18 +85,6 @@ export async function initController() {
       if (state.geoWatchId == null) return;
       state.followGps = false;
       state.followGpsLocked = true;
-    },
-    onCursorDragStart() {
-      state.isUserDragging = true;
-    },
-    onCursorDragMove(latlng) {
-      state.lastUserCursorLatLng = { lat: latlng.lat, lon: latlng.lng };
-      requestUserCursorSnap({ lat: latlng.lat, lon: latlng.lng });
-    },
-    onCursorDragEnd(latlng) {
-      state.isUserDragging = false;
-      state.lastUserCursorLatLng = { lat: latlng.lat, lon: latlng.lng };
-      maybeResumeAutoSnap();
     }
   });
 
@@ -150,7 +138,6 @@ export async function initController() {
     gpsLastFixAt: 0,
     gpsNearTrack: false,
     lastSnapResult: null,
-    lastUserCursorLatLng: null,
     geoWatchId: null,
     followGps: false,
     followGpsLocked: false
@@ -167,19 +154,35 @@ export async function initController() {
   let lastFocusBeforePanel = null;
   let lastFocusBeforeModal = null;
   let suppressBackdropClickUntil = 0;
+  let restoreFocusOnPanelClose = false;
+  let isWidePrev = window.matchMedia("(min-width: 900px)").matches;
 
   function setPanelOpen(open) {
     const isWide = window.matchMedia("(min-width: 900px)").matches;
-    if (isWide) return;
+    const appRoot = btnPanel.closest(".app") || document.querySelector(".app");
+    appRoot?.classList.toggle("panel-collapsed", Boolean(isWide && !open));
 
     if (open) lastFocusBeforePanel = document.activeElement;
     panel.classList.toggle("open", open);
-    backdrop.hidden = !open;
+    backdrop.hidden = isWide ? true : !open;
     btnPanel.setAttribute("aria-expanded", String(open));
 
-    if (open) btnOpen.focus();
-    else lastFocusBeforePanel?.focus?.();
+    if (!isWide) {
+      if (open) btnOpen.focus();
+      else {
+        if (restoreFocusOnPanelClose) lastFocusBeforePanel?.focus?.();
+        else if (panel.contains(document.activeElement)) document.activeElement?.blur?.();
+        restoreFocusOnPanelClose = false;
+      }
+    } else if (!open) {
+      if (restoreFocusOnPanelClose) lastFocusBeforePanel?.focus?.();
+      else if (panel.contains(document.activeElement)) document.activeElement?.blur?.();
+      restoreFocusOnPanelClose = false;
+    }
   }
+
+  // Desktop starts with the side panel open (CSS shows it open by default; this syncs aria/backdrop state).
+  if (isWidePrev) setPanelOpen(true);
 
   function openSettingsDialog() {
     lastFocusBeforeModal = document.activeElement;
@@ -492,12 +495,6 @@ export async function initController() {
     });
   }
 
-  const USER_SNAP_MIN_INTERVAL_MS = 80;
-  let lastUserSnapSentAt = 0;
-  let userSnapTimer = null;
-  let userSnapInFlight = false;
-  let userSnapDesired = null;
-
   function segmentDistM(i, t) {
     const track = state.currentTrack;
     if (!track?.distM || track.distM.length < 2) return 0;
@@ -518,47 +515,6 @@ export async function initController() {
     const e1 = track.eleNorm[idx + 1];
     if (!Number.isFinite(e0) || !Number.isFinite(e1)) return 0;
     return e0 + tt * (e1 - e0);
-  }
-
-  function requestUserCursorSnap(pos) {
-    userSnapDesired = pos;
-    scheduleUserSnap();
-  }
-
-  function scheduleUserSnap() {
-    if (!userSnapDesired) return;
-    if (userSnapInFlight) return;
-    const now = Date.now();
-    const wait = Math.max(0, USER_SNAP_MIN_INTERVAL_MS - (now - lastUserSnapSentAt));
-    clearTimeout(userSnapTimer);
-    userSnapTimer = setTimeout(runUserSnap, wait);
-  }
-
-  async function runUserSnap() {
-    userSnapTimer = null;
-    if (userSnapInFlight) return;
-    const pos = userSnapDesired;
-    if (!pos) return;
-    if (!state.currentTrack) return;
-
-    userSnapInFlight = true;
-    lastUserSnapSentAt = Date.now();
-
-    try {
-      const res = await worker.nearestPoint({ lat: pos.lat, lon: pos.lon });
-      if (!res || !state.currentTrack) return;
-      state.cursor = { kind: "segment", i: res.i, t: res.t };
-      mapView.setCursor({ lat: res.lat, lon: res.lon });
-      suppressChartCursorEventsOnce();
-      const distM = segmentDistM(res.i, res.t);
-      const eleM = segmentEleNormM(res.i, res.t);
-      chartView.setCursorXY(distM * state.currentTrack.distFactor, eleM * state.currentTrack.eleFactor);
-    } catch {
-      // ignore
-    } finally {
-      userSnapInFlight = false;
-      if (userSnapDesired && userSnapDesired !== pos) scheduleUserSnap();
-    }
   }
 
   function maybeResumeAutoSnap() {
@@ -847,6 +803,7 @@ export async function initController() {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
     panelToggleFromPointer = false;
+    restoreFocusOnPanelClose = panel.classList.contains("open");
     togglePanelFromButton();
   });
   backdrop.addEventListener("click", () => {
@@ -860,6 +817,7 @@ export async function initController() {
     if (e.key !== "Escape") return;
     if (panel.classList.contains("open")) {
       e.preventDefault();
+      restoreFocusOnPanelClose = true;
       setPanelOpen(false);
       mapView.invalidateSizeSoon();
     }
@@ -898,6 +856,11 @@ export async function initController() {
   });
 
   window.addEventListener("resize", () => {
+    const isWideNow = window.matchMedia("(min-width: 900px)").matches;
+    if (isWideNow !== isWidePrev) {
+      setPanelOpen(isWideNow);
+      isWidePrev = isWideNow;
+    }
     mapView.invalidateSizeSoon();
     chartView.resizeSoon();
   });

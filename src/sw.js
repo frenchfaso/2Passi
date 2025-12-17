@@ -267,7 +267,12 @@ self.addEventListener("message", (event) => {
           await clearAllTiles();
           event.source?.postMessage({ replyTo: data.id, ok: true });
         } catch (e) {
-          event.source?.postMessage({ replyTo: data.id, ok: false, error: e?.message || "Failed" });
+          event.source?.postMessage({
+            replyTo: data.id,
+            ok: false,
+            errorCode: "errors.failed",
+            error: e?.message || ""
+          });
         }
       })()
     );
@@ -281,7 +286,12 @@ self.addEventListener("message", (event) => {
           const res = await pruneTilesOlderThan({ maxAgeSeconds: Number(data.maxAgeSeconds) || 0 });
           event.source?.postMessage({ replyTo: data.id, ok: true, ...res });
         } catch (e) {
-          event.source?.postMessage({ replyTo: data.id, ok: false, error: e?.message || "Failed" });
+          event.source?.postMessage({
+            replyTo: data.id,
+            ok: false,
+            errorCode: "errors.failed",
+            error: e?.message || ""
+          });
         }
       })()
     );
