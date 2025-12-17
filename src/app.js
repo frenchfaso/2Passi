@@ -2,6 +2,8 @@ import { t } from "./lib/i18n";
 
 export function createAppRoot() {
   const logoSrc = `${import.meta.env.BASE_URL}icons/icon-192.png`;
+  const appVersion = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "";
+  const appVersionText = appVersion ? `v ${appVersion}` : "";
 
   const app = document.createElement("div");
   app.className = "app";
@@ -24,6 +26,7 @@ export function createAppRoot() {
 	      </div>
 		      <div class="topbar-center">
 		        <strong class="app-title">2Passi</strong>
+            <small class="app-version" ${appVersionText ? "" : "hidden"}>${appVersionText}</small>
 		      </div>
 		      <div class="topbar-spacer" aria-hidden="true"></div>
 		    </header>

@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import fs from "node:fs";
 
 function normalizeBasePath(value) {
   if (!value) return "/";
@@ -7,8 +8,13 @@ function normalizeBasePath(value) {
   return withLeading.endsWith("/") ? withLeading : `${withLeading}/`;
 }
 
+const pkg = JSON.parse(fs.readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+
 export default defineConfig({
   base: normalizeBasePath(process.env.BASE_PATH),
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version)
+  },
   plugins: [
     VitePWA({
       strategies: "injectManifest",
@@ -32,6 +38,20 @@ export default defineConfig({
         display: "standalone",
         background_color: "#ffffff",
         theme_color: "#ffffff",
+        file_handlers: [
+          {
+            action: ".",
+            accept: {
+              "application/gpx+xml": [".gpx"],
+              "application/xml": [".gpx"],
+              "text/xml": [".gpx"],
+              "application/octet-stream": [".gpx"]
+            }
+          }
+        ],
+        launch_handler: {
+          client_mode: ["focus-existing", "navigate-existing"]
+        },
         icons: [
           {
             src: "icons/icon-192.png",

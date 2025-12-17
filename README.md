@@ -25,5 +25,5 @@
 <br />
 
 <p align="center">
-  <img src="2Passi_screenshot.png" width="360" alt="2Passi screenshot" />
+  <img src="public/2Passi_screenshot_shadow.png" width="360" alt="2Passi screenshot" />
 </p>

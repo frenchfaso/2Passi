@@ -122,6 +122,15 @@ body {
   font-size: 1.65rem;
 }
 
+.topbar-center .app-version {
+  display: block;
+  text-align: center;
+  line-height: 1.2;
+  font-size: 0.9rem;
+  color: var(--pico-muted-color);
+  margin-top: 0.2rem;
+}
+
 .topbar-center .topbar-title {
   display: block;
   text-align: center;
@@ -478,6 +487,10 @@ body {
 #settingsDialog .settings-tiles-footer > small {
   display: block;
   text-align: center;
+}
+
+#settingsDialog .settings-attribution {
+  color: var(--pico-muted-color);
 }
 
 @keyframes gps-pulse {

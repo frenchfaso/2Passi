@@ -87,6 +87,7 @@ const STRINGS = {
       pruned: "Eliminate {count} mappe.",
       pruneFailed: "Errore durante la pulizia.",
       cacheProgress: "Cache mappa… {done}/{total}",
+      leafletAttribution: "Reso possibile dalla fantastica {leaflet}.",
       retention: {
         w1: "1 settimana",
         w2: "2 settimane",
@@ -190,6 +191,7 @@ const STRINGS = {
       pruned: "Deleted {count} maps.",
       pruneFailed: "Failed to clean offline maps.",
       cacheProgress: "Caching map… {done}/{total}",
+      leafletAttribution: "Made possible by the awesome {leaflet}.",
       retention: {
         w1: "1 week",
         w2: "2 weeks",
@@ -293,6 +295,7 @@ const STRINGS = {
       pruned: "{count} Karten gelöscht.",
       pruneFailed: "Bereinigung fehlgeschlagen.",
       cacheProgress: "Karte wird zwischengespeichert… {done}/{total}",
+      leafletAttribution: "Ermöglicht durch die awesome {leaflet}.",
       retention: {
         w1: "1 Woche",
         w2: "2 Wochen",

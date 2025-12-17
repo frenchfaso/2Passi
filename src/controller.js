@@ -844,6 +844,10 @@ export async function initController() {
 	        <div class="settings-tiles-footer">
 	          <button class="secondary" id="btnTilesClear" type="button">${t("settings.clearOffline")}</button>
 	          <small id="storageInfo"></small>
+            <small class="settings-attribution">${t("settings.leafletAttribution", {
+              leaflet:
+                '<a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>'
+            })}</small>
 	        </div>
 	      </form>
 	    `;
@@ -1017,6 +1021,34 @@ export async function initController() {
     }
   });
 
+  let resolveLaunchOpen = null;
+  const launchOpenSignal = new Promise((resolve) => {
+    resolveLaunchOpen = resolve;
+  });
+
+  if (globalThis.launchQueue?.setConsumer) {
+    globalThis.launchQueue.setConsumer((launchParams) => {
+      const handles = launchParams?.files || [];
+      if (!handles.length) return;
+      resolveLaunchOpen?.(true);
+      resolveLaunchOpen = null;
+
+      (async () => {
+        for (const handle of handles) {
+          const file = await handle.getFile();
+          if (!file) continue;
+          await importGpxFile(file);
+        }
+        setPanelOpen(false);
+      })().catch(() => {
+        showToast(t("toast.importFailed"));
+      });
+    });
+  } else {
+    resolveLaunchOpen?.(false);
+    resolveLaunchOpen = null;
+  }
+
   btnSettings.addEventListener("click", () => {
     setPanelOpen(false);
     renderSettings();
@@ -1057,8 +1089,12 @@ export async function initController() {
   await refreshHistory();
   renderSettings();
 
-  const last = localStorage.getItem("lastTrackId");
-  if (last) {
-    openTrackById(last).catch(() => {});
+  const openedViaLaunchQueue = await Promise.race([
+    launchOpenSignal,
+    new Promise((resolve) => setTimeout(() => resolve(false), 600))
+  ]);
+  if (!openedViaLaunchQueue) {
+    const last = localStorage.getItem("lastTrackId");
+    if (last) openTrackById(last).catch(() => {});
   }
 }
