@@ -152,6 +152,8 @@ export async function initController() {
     }
   });
 
+  chartView.clear({ message: t("chart.empty") });
+
   chartView.setMetaFormatter(({ idx, xVal, yVal }) => {
     const track = state.currentTrack;
     if (!track) return "";
@@ -484,7 +486,7 @@ export async function initController() {
       state.cursor = null;
       setCurrentTitle("");
       mapView.clearTrack();
-      chartView.clear();
+      chartView.clear({ message: t("chart.empty") });
       localStorage.removeItem("lastTrackId");
     }
     await refreshHistory();
@@ -941,6 +943,7 @@ export async function initController() {
       renderSettings();
       applyUnitSystemToCurrentTrack();
       await refreshHistory();
+      if (!state.currentTrack) chartView.clear({ message: t("chart.empty") });
       settingsBody.querySelector("#setLang")?.focus?.();
     });
 
@@ -1117,7 +1120,16 @@ export async function initController() {
     else stopGpsWatch();
   });
 
+  let renameFromPointer = false;
+  currentTitle.addEventListener("pointerdown", (e) => {
+    if (e.pointerType) renameFromPointer = true;
+  });
+  currentTitle.addEventListener("keydown", () => {
+    renameFromPointer = false;
+  });
   currentTitle.addEventListener("click", () => {
+    if (renameFromPointer) currentTitle.blur?.();
+    renameFromPointer = false;
     renameCurrentTrack().catch(() => {});
   });
 

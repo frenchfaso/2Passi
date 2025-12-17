@@ -11,12 +11,18 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
   let ro = null;
   let resizeTimer = null;
   let pointerDown = false;
+  let dragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let cursorStartLeft = 0;
+  let cursorStartTop = 0;
   let markerEl = null;
   let markerOverride = null;
   let suppressCursorCallback = false;
   let touchActive = false;
   let formatMeta = null;
   let inertiaTop = 0;
+  const DRAG_THRESHOLD_PX = 6;
   const inertia = createInertia({
     sampleWindowMs: 120,
     startVelocityThreshold: 0.05,
@@ -164,30 +170,45 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
       inertia.cancel();
       inertia.resetSamples();
       pointerDown = true;
+      dragging = false;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      cursorStartLeft = Number.isFinite(u?.cursor?.left) ? u.cursor.left : (u.over.clientWidth ? u.over.clientWidth / 2 : 0);
+      cursorStartTop = Number.isFinite(u?.cursor?.top) ? u.cursor.top : (u.over.clientHeight ? u.over.clientHeight / 2 : 0);
       try {
         u.over.setPointerCapture(e.pointerId);
       } catch {
         // ignore
       }
-      onUserDragStart?.();
-      updateCursorFromEvent(e);
     });
     u.over.addEventListener("pointermove", (e) => {
       if (!pointerDown) return;
       if (touchActive && e.pointerType === "touch") return;
       e.preventDefault();
-      updateCursorFromEvent(e);
+      if (!dragging) {
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        if (dx * dx + dy * dy < DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) return;
+        dragging = true;
+        inertia.resetSamples();
+        inertia.sample(cursorStartLeft);
+        onUserDragStart?.();
+      }
+      updateCursorFromDragDelta(e.clientX);
     });
     u.over.addEventListener("pointerup", (e) => {
       if (!pointerDown) return;
       if (touchActive && e.pointerType === "touch") return;
       e.preventDefault();
       pointerDown = false;
+      const wasDragging = dragging;
+      dragging = false;
       try {
         u.over.releasePointerCapture(e.pointerId);
       } catch {
         // ignore
       }
+      if (!wasDragging) return;
       if (!inertia.startFromSamples()) onUserDragEnd?.();
     });
     u.over.addEventListener("pointercancel", (e) => {
@@ -195,8 +216,10 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
       if (touchActive && e.pointerType === "touch") return;
       e.preventDefault();
       pointerDown = false;
+      const wasDragging = dragging;
+      dragging = false;
       inertia.cancel();
-      onUserDragEnd?.();
+      if (wasDragging) onUserDragEnd?.();
     });
 
     u.over.addEventListener(
@@ -207,11 +230,14 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
         inertia.resetSamples();
         touchActive = true;
         pointerDown = true;
+        dragging = false;
         e.preventDefault();
-        onUserDragStart?.();
         const t = e.touches?.[0];
         if (!t) return;
-        updateCursorFromClientXY(t.clientX, t.clientY);
+        dragStartX = t.clientX;
+        dragStartY = t.clientY;
+        cursorStartLeft = Number.isFinite(u?.cursor?.left) ? u.cursor.left : (u.over.clientWidth ? u.over.clientWidth / 2 : 0);
+        cursorStartTop = Number.isFinite(u?.cursor?.top) ? u.cursor.top : (u.over.clientHeight ? u.over.clientHeight / 2 : 0);
       },
       { passive: false }
     );
@@ -222,7 +248,16 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
         e.preventDefault();
         const t = e.touches?.[0];
         if (!t) return;
-        updateCursorFromClientXY(t.clientX, t.clientY);
+        if (!dragging) {
+          const dx = t.clientX - dragStartX;
+          const dy = t.clientY - dragStartY;
+          if (dx * dx + dy * dy < DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) return;
+          dragging = true;
+          inertia.resetSamples();
+          inertia.sample(cursorStartLeft);
+          onUserDragStart?.();
+        }
+        updateCursorFromDragDelta(t.clientX);
       },
       { passive: false }
     );
@@ -233,6 +268,9 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
         e.preventDefault();
         pointerDown = false;
         touchActive = false;
+        const wasDragging = dragging;
+        dragging = false;
+        if (!wasDragging) return;
         if (!inertia.startFromSamples()) onUserDragEnd?.();
       },
       { passive: false }
@@ -244,8 +282,10 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
         e.preventDefault();
         pointerDown = false;
         touchActive = false;
+        const wasDragging = dragging;
+        dragging = false;
         inertia.cancel();
-        onUserDragEnd?.();
+        if (wasDragging) onUserDragEnd?.();
       },
       { passive: false }
     );
@@ -266,6 +306,17 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
     const top = clamp(clientY - rect.top, 0, rect.height);
     inertiaTop = top;
     if (pointerDown) inertia.sample(left);
+    u.setCursor({ left, top });
+  }
+
+  function updateCursorFromDragDelta(clientX) {
+    if (!u) return;
+    const rect = u.over.getBoundingClientRect();
+    const dx = clientX - dragStartX;
+    const left = clamp(cursorStartLeft + dx, 0, rect.width);
+    const top = cursorStartTop;
+    inertiaTop = top;
+    inertia.sample(left);
     u.setCursor({ left, top });
   }
 

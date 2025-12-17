@@ -58,6 +58,7 @@ const STRINGS = {
     },
     chart: {
       processing: "Elaborazione…",
+      empty: "Apri un GPX per vedere il profilo altimetrico.",
       distanceMi: "Distanza (mi)",
       distanceKm: "Distanza (km)",
       elevFt: "Dislivello Δ (ft)",
@@ -163,6 +164,7 @@ const STRINGS = {
     },
     chart: {
       processing: "Processing…",
+      empty: "Open a GPX to view the elevation profile.",
       distanceMi: "Distance (mi)",
       distanceKm: "Distance (km)",
       elevFt: "Elev Δ (ft)",
@@ -268,6 +270,7 @@ const STRINGS = {
     },
     chart: {
       processing: "Verarbeitung…",
+      empty: "Öffne eine GPX, um das Höhenprofil zu sehen.",
       distanceMi: "Distanz (mi)",
       distanceKm: "Distanz (km)",
       elevFt: "Höhe Δ (ft)",

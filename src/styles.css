@@ -154,6 +154,11 @@ body {
   font: inherit;
   text-align: left;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.track-title-btn:focus {
+  outline: none;
 }
 
 .track-title-btn:focus-visible {
@@ -316,7 +321,16 @@ body {
 }
 
 .chart-placeholder {
-  padding: 0.75rem;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  text-align: center;
+  color: var(--pico-muted-color);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(148, 163, 184, 0.10), transparent 45%),
+    radial-gradient(circle at 80% 40%, rgba(148, 163, 184, 0.10), transparent 55%),
+    radial-gradient(circle at 40% 80%, rgba(148, 163, 184, 0.08), transparent 55%);
 }
 
 :root {
