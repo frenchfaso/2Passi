@@ -104,9 +104,9 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding-top: var(--topbar-title-top);
-  padding-bottom: var(--topbar-subtitle-bottom);
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
   padding-inline: 0.5rem;
   pointer-events: none;
 }
@@ -134,7 +134,23 @@ body {
 }
 
 .track-title {
-  color: var(--pico-muted-color);
+  color: color-mix(in srgb, var(--pico-color) 85%, var(--pico-muted-color));
+}
+
+.track-title-btn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.track-title-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pico-primary) 55%, transparent);
+  outline-offset: 2px;
+  border-radius: 10px;
 }
 
 .brand-logo {
@@ -231,9 +247,19 @@ body {
   border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
 }
 
+.chart-header .track-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .chart-meta {
   color: color-mix(in srgb, var(--pico-color) 70%, var(--pico-muted-color));
   font-weight: 600;
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .chart {
@@ -289,6 +315,7 @@ body {
   top: var(--topbar-h);
   left: 0;
   height: calc(100% - var(--topbar-h));
+  min-height: 0;
   width: min(var(--panel-w), 88vw);
   background: var(--pico-card-background-color);
   border-right: var(--pico-border-width) solid var(--pico-muted-border-color);
@@ -337,6 +364,7 @@ body {
 
 .history > article {
   margin: 0;
+  flex: 0 0 auto;
 }
 
 .history-item {
@@ -347,13 +375,16 @@ body {
 }
 
 .history-item:not(.history-empty) {
-  height: 3.75rem;
+  height: 4.75rem;
+  display: flex;
+  align-items: center;
 }
 
 .history-item-top {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
+  width: 100%;
   column-gap: 0.5rem;
   margin: 0;
   min-width: 0;

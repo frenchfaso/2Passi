@@ -16,6 +16,12 @@ const STRINGS = {
       gps: "GPS",
       follow: "Segui"
     },
+    track: {
+      renameAria: "Rinomina traccia",
+      renameTitle: "Rinomina traccia",
+      renameLabel: "Nome traccia",
+      renameSave: "Salva"
+    },
     confirm: {
       title: "Conferma",
       message: "Sei sicuro?",
@@ -110,6 +116,12 @@ const STRINGS = {
       gps: "GPS",
       follow: "Follow"
     },
+    track: {
+      renameAria: "Rename track",
+      renameTitle: "Rename track",
+      renameLabel: "Track name",
+      renameSave: "Save"
+    },
     confirm: {
       title: "Confirm",
       message: "Are you sure?",
@@ -203,6 +215,12 @@ const STRINGS = {
       fit: "Anpassen",
       gps: "GPS",
       follow: "Folgen"
+    },
+    track: {
+      renameAria: "Track umbenennen",
+      renameTitle: "Track umbenennen",
+      renameLabel: "Trackname",
+      renameSave: "Speichern"
     },
     confirm: {
       title: "Bestätigen",

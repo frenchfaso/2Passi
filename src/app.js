@@ -22,12 +22,11 @@ export function createAppRoot() {
 	          <img class="brand-logo" src="${logoSrc}" alt="" decoding="async" />
 	        </div>
 	      </div>
-	      <div class="topbar-center">
-	        <strong class="app-title">2Passi</strong>
-	        <small class="topbar-title track-title" id="currentTitle" hidden></small>
-	      </div>
-	      <div class="topbar-spacer" aria-hidden="true"></div>
-	    </header>
+		      <div class="topbar-center">
+		        <strong class="app-title">2Passi</strong>
+		      </div>
+		      <div class="topbar-spacer" aria-hidden="true"></div>
+		    </header>
 
 	    <aside class="panel" id="panel" aria-label="${t("app.menu")}">
 	      <div class="panel-content">
@@ -47,13 +46,20 @@ export function createAppRoot() {
 	          <button id="btnLocate" type="button" class="secondary outline" aria-pressed="false">${t("app.gps")}</button>
 	        </div>
 	      </section>
-      <section class="chart-wrap">
-        <header class="chart-header">
-          <strong>${t("app.elevation")}</strong>
-          <small class="chart-meta" id="chartMeta"></small>
-        </header>
-        <div id="chart" class="chart" aria-label="${t("app.elevationChart")}"></div>
-      </section>
+	      <section class="chart-wrap">
+	        <header class="chart-header">
+	          <button
+	            type="button"
+	            class="track-title track-title-btn"
+	            id="currentTitle"
+	            hidden
+	            aria-label="${t("track.renameAria")}"
+	            title="${t("track.renameAria")}"
+	          ></button>
+	          <small class="chart-meta" id="chartMeta"></small>
+	        </header>
+	        <div id="chart" class="chart" aria-label="${t("app.elevationChart")}"></div>
+	      </section>
     </main>
 
     <div class="backdrop" id="backdrop" hidden></div>
@@ -68,25 +74,42 @@ export function createAppRoot() {
       </article>
     </dialog>
 
-    <dialog id="confirmDialog" aria-labelledby="confirmTitle">
-      <article>
-        <header>
-          <button class="close" id="btnConfirmClose" aria-label="${t("app.close")}"></button>
-          <h3 id="confirmTitle">${t("confirm.title")}</h3>
-        </header>
-        <p id="confirmMessage"></p>
-        <footer>
-          <button class="secondary" id="btnConfirmCancel" type="button">${t("confirm.cancel")}</button>
-          <button id="btnConfirmOk" type="button">${t("confirm.delete")}</button>
-        </footer>
-      </article>
-    </dialog>
+	    <dialog id="confirmDialog" aria-labelledby="confirmTitle">
+	      <article>
+	        <header>
+	          <button class="close" id="btnConfirmClose" aria-label="${t("app.close")}"></button>
+	          <h3 id="confirmTitle">${t("confirm.title")}</h3>
+	        </header>
+	        <p id="confirmMessage"></p>
+	        <footer>
+	          <button class="secondary" id="btnConfirmCancel" type="button">${t("confirm.cancel")}</button>
+	          <button id="btnConfirmOk" type="button">${t("confirm.delete")}</button>
+	        </footer>
+	      </article>
+	    </dialog>
+
+	    <dialog id="renameDialog" aria-labelledby="renameTitle">
+	      <article>
+	        <header>
+	          <button class="close" id="btnRenameClose" aria-label="${t("app.close")}"></button>
+	          <h3 id="renameTitle">${t("track.renameTitle")}</h3>
+	        </header>
+	        <label>
+	          ${t("track.renameLabel")}
+	          <input id="renameInput" type="text" autocomplete="off" spellcheck="false" maxlength="120" />
+	        </label>
+	        <footer>
+	          <button class="secondary" id="btnRenameCancel" type="button">${t("confirm.cancel")}</button>
+	          <button id="btnRenameSave" type="button">${t("track.renameSave")}</button>
+	        </footer>
+	      </article>
+	    </dialog>
 
     <input id="fileInput" type="file" accept=".gpx,application/gpx+xml,application/octet-stream,text/xml" hidden />
 
     <div class="toast-host" id="toastHost" aria-live="polite" aria-relevant="additions"></div>
-    <article class="microprogress" id="microprogress" hidden role="status" aria-live="polite"></article>
-  `;
+	    <article class="microprogress" id="microprogress" hidden role="status" aria-live="polite"></article>
+	  `;
 
   return app;
 }

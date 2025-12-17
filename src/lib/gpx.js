@@ -90,3 +90,24 @@ export async function parseGpxBlob(blob, { fallbackName } = {}) {
     timeMs: new Float64Array(timeMs)
   };
 }
+
+export async function setGpxTrackName(blob, nextName) {
+  const xmlText = await blob.text();
+  const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+  if (doc.querySelector("parsererror")) {
+    throw new Error(t("errors.gpxParseError"));
+  }
+
+  const gpx = doc.documentElement ?? doc;
+  const trk = firstByLocalName(gpx, "trk") || gpx;
+  let nameEl = firstByLocalName(trk, "name");
+  if (!nameEl) {
+    const ns = trk?.namespaceURI || gpx?.namespaceURI || null;
+    nameEl = ns ? doc.createElementNS(ns, "name") : doc.createElement("name");
+    trk.insertBefore(nameEl, trk.firstChild);
+  }
+  nameEl.textContent = String(nextName ?? "");
+
+  const out = new XMLSerializer().serializeToString(doc);
+  return new Blob([out], { type: blob.type || "application/gpx+xml" });
+}

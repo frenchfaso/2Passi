@@ -1,4 +1,4 @@
-import { parseGpxBlob } from "./lib/gpx";
+import { parseGpxBlob, setGpxTrackName } from "./lib/gpx";
 import { createTrackWorkerClient } from "./lib/trackWorkerClient";
 import { createMapView } from "./lib/mapView";
 import { createChartView } from "./lib/chartView";
@@ -42,6 +42,12 @@ export async function initController() {
   const btnConfirmCancel = byId("btnConfirmCancel");
   const btnConfirmOk = byId("btnConfirmOk");
 
+  const renameDialog = byId("renameDialog");
+  const renameInput = byId("renameInput");
+  const btnRenameClose = byId("btnRenameClose");
+  const btnRenameCancel = byId("btnRenameCancel");
+  const btnRenameSave = byId("btnRenameSave");
+
   const fileInput = byId("fileInput");
   const historyHost = byId("history");
   const currentTitle = byId("currentTitle");
@@ -83,8 +89,7 @@ export async function initController() {
     tileAttribution: settings.tile.attribution,
     onUserNavigate() {
       if (state.geoWatchId == null) return;
-      state.followGps = false;
-      state.followGpsLocked = true;
+      lockGpsFollow();
     }
   });
 
@@ -143,6 +148,11 @@ export async function initController() {
     followGpsLocked: false
   };
 
+  function lockGpsFollow() {
+    state.followGps = false;
+    state.followGpsLocked = true;
+  }
+
   let ignoreChartCursorEvents = 0;
   function suppressChartCursorEventsOnce() {
     ignoreChartCursorEvents++;
@@ -196,6 +206,64 @@ export async function initController() {
   }
 
   settingsDialog.addEventListener("close", () => {
+    lastFocusBeforeModal?.focus?.();
+  });
+
+  function renameTrackPrompt({ value }) {
+    return new Promise((resolve) => {
+      const cleanup = () => {
+        btnRenameClose.removeEventListener("click", onCancel);
+        btnRenameCancel.removeEventListener("click", onCancel);
+        btnRenameSave.removeEventListener("click", onOk);
+        renameInput.removeEventListener("keydown", onInputKeydown);
+        renameDialog.removeEventListener("close", onClose);
+        renameDialog.removeEventListener("cancel", onCancelEvent);
+      };
+
+      const onCancel = () => {
+        if (renameDialog.open) renameDialog.close("cancel");
+      };
+
+      const onOk = () => {
+        if (renameDialog.open) renameDialog.close("ok");
+      };
+
+      const onInputKeydown = (e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        onOk();
+      };
+
+      const onCancelEvent = (e) => {
+        e.preventDefault();
+        onCancel();
+      };
+
+      const onClose = () => {
+        const ok = renameDialog.returnValue === "ok";
+        const next = ok ? String(renameInput.value || "").trim() : null;
+        cleanup();
+        resolve(next);
+      };
+
+      lastFocusBeforeModal = document.activeElement;
+      if (typeof renameDialog.showModal === "function") renameDialog.showModal();
+      else renameDialog.setAttribute("open", "");
+
+      renameInput.value = value || "";
+      btnRenameClose.addEventListener("click", onCancel);
+      btnRenameCancel.addEventListener("click", onCancel);
+      btnRenameSave.addEventListener("click", onOk);
+      renameInput.addEventListener("keydown", onInputKeydown);
+      renameDialog.addEventListener("close", onClose);
+      renameDialog.addEventListener("cancel", onCancelEvent);
+
+      renameInput.focus();
+      renameInput.select?.();
+    });
+  }
+
+  renameDialog.addEventListener("close", () => {
     lastFocusBeforeModal?.focus?.();
   });
 
@@ -350,6 +418,29 @@ export async function initController() {
     currentTitle.textContent = trackName;
     currentTitle.hidden = !trackName;
     document.title = trackName ? `${trackName} — 2Passi` : "2Passi";
+  }
+
+  async function renameCurrentTrack() {
+    const track = state.currentTrack;
+    if (!track) return;
+    const next = await renameTrackPrompt({ value: track.name || "" });
+    if (next == null) return;
+    const record = await db.getTrack(track.id);
+    if (!record) {
+      showToast(t("toast.trackNotFound"));
+      return;
+    }
+    try {
+      record.gpxBlob = await setGpxTrackName(record.gpxBlob, next);
+    } catch (e) {
+      showToast(e?.message || t("toast.importFailed"));
+      return;
+    }
+    record.name = next;
+    await db.putTrack(record);
+    track.name = next;
+    setCurrentTitle(next);
+    await refreshHistory();
   }
 
   async function openTrackFromBlob({ id, name, description, gpxBlob, addedAt, photoIds = [] }) {
@@ -540,6 +631,9 @@ export async function initController() {
     if (state.gpsStale === next) return;
     state.gpsStale = next;
     mapView.setGpsStale(next);
+    if (next) {
+      lockGpsFollow();
+    }
   }
 
   function startGpsWatch() {
@@ -842,10 +936,17 @@ export async function initController() {
   });
   btnSettingsClose.addEventListener("click", () => closeSettingsDialog());
 
-  btnFit.addEventListener("click", () => mapView.fitToTrack());
+  btnFit.addEventListener("click", () => {
+    lockGpsFollow();
+    mapView.fitToTrack();
+  });
   btnLocate.addEventListener("click", () => {
     if (state.geoWatchId == null) startGpsWatch();
     else stopGpsWatch();
+  });
+
+  currentTitle.addEventListener("click", () => {
+    renameCurrentTrack().catch(() => {});
   });
 
   sw.onProgress((p) => {
