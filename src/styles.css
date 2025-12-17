@@ -324,7 +324,8 @@ body {
 }
 
 .history {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
   flex: 1;
   min-height: 0;
@@ -345,10 +346,14 @@ body {
   padding: 0.5rem 0.75rem;
 }
 
+.history-item:not(.history-empty) {
+  height: 3.75rem;
+}
+
 .history-item-top {
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: start;
+  align-items: center;
   column-gap: 0.5rem;
   margin: 0;
   min-width: 0;
@@ -377,6 +382,9 @@ body {
   display: block;
   margin: 0;
   color: var(--pico-muted-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .backdrop {

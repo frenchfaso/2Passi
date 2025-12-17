@@ -257,7 +257,7 @@ export async function initController() {
 
     if (state.tracks.length === 0) {
       const empty = document.createElement("article");
-      empty.className = "history-item";
+      empty.className = "history-item history-empty";
       empty.textContent = t("history.empty", { openGpx: t("app.openGpx") });
       historyHost.append(empty);
       return;
