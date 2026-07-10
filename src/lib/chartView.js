@@ -45,12 +45,17 @@ export function createChartView(container, metaHost, { onCursorIndexChange, onUs
   });
 
   function destroyPlot() {
+    const wasInteracting = dragging || inertia.running;
     inertia.cancel();
+    pointerDown = false;
+    dragging = false;
+    touchActive = false;
     if (u) u.destroy();
     u = null;
     data = null;
     markerEl = null;
     markerOverride = null;
+    if (wasInteracting) onUserDragEnd?.();
   }
 
   function clear({ message } = {}) {

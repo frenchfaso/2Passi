@@ -40,6 +40,7 @@ export function createAppRoot() {
             <div class="menu-credits">
               <small class="menu-credits-title" id="menuCreditsTitle">${t("app.creditsTitle")}</small>
               <small class="menu-credits-links" id="menuCreditsLinks">
+                <a href="https://picocss.com/" target="_blank" rel="noopener noreferrer">Pico CSS</a> ·
                 <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a> ·
                 <a href="https://github.com/leeoniya/uPlot" target="_blank" rel="noopener noreferrer">uPlot</a> ·
                 <a href="https://github.com/jakearchibald/idb" target="_blank" rel="noopener noreferrer">idb</a>

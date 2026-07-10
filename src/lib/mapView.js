@@ -269,9 +269,6 @@ export function createMapView(
   }
 
   return {
-    getZoom() {
-      return map.getZoom();
-    },
     setTileProvider,
     setTrack,
     clearTrack,

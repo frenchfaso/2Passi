@@ -3,6 +3,7 @@ import { createTrackWorkerClient } from "./lib/trackWorkerClient";
 import { createMapView } from "./lib/mapView";
 import { createChartView } from "./lib/chartView";
 import { formatDateTime, formatDistance, formatDuration } from "./lib/format";
+import { estimatedDurationSecondsFromPace, recordedDurationSeconds } from "./lib/duration";
 import { openAppDb } from "./lib/db";
 import { loadSettings, saveSettings, getDefaultSettings } from "./lib/settings";
 import { createSwClient } from "./lib/swClient";
@@ -187,6 +188,7 @@ export async function initController() {
   });
 
   const worker = createTrackWorkerClient(new URL("./workers/trackWorker.js", import.meta.url));
+  let openTrackGeneration = 0;
 
   const state = {
     tracks: [],
@@ -419,11 +421,11 @@ export async function initController() {
 
       item.innerHTML = `
         <header class="history-item-top">
-          <div class="history-text">
+          <button class="history-open" type="button">
             <span class="history-title"></span>
             <small class="history-meta"></small>
-          </div>
-          <button class="secondary outline" type="button" aria-label="${t("history.deleteTrackAria")}" title="${t(
+          </button>
+          <button class="history-delete secondary outline" type="button" aria-label="${t("history.deleteTrackAria")}" title="${t(
         "history.deleteTrackTitle"
       )}">🗑</button>
         </header>
@@ -431,7 +433,8 @@ export async function initController() {
 
       const title = item.querySelector(".history-title");
       const meta = item.querySelector(".history-meta");
-      const delBtn = item.querySelector("button");
+      const openBtn = item.querySelector(".history-open");
+      const delBtn = item.querySelector(".history-delete");
 
       if (title) title.textContent = track.name || t("history.untitled");
 
@@ -446,14 +449,21 @@ export async function initController() {
               ? track.trackLength * 1000
               : 0;
         const dist = formatDistance(trackLengthM * distFactor, unit);
-        const eta = formatDuration(track.estimatedTimeSeconds);
+        const etaSeconds =
+          track.durationSource === "pace"
+            ? estimatedDurationSecondsFromPace(trackLengthM, settings)
+            : track.estimatedTimeSeconds;
+        const eta = formatDuration(etaSeconds);
         meta.textContent = `${dist} • ${eta}`;
       }
 
-      item.addEventListener("click", async (e) => {
-        if (e.target === delBtn || delBtn?.contains(e.target)) return;
-        await openTrackById(track.id);
-        setPanelOpen(false);
+      openBtn?.addEventListener("click", async () => {
+        try {
+          await openTrackById(track.id);
+          setPanelOpen(false);
+        } catch (e) {
+          showToast(e?.message || t("toast.importFailed"));
+        }
       });
 
       delBtn?.addEventListener("click", async (e) => {
@@ -529,6 +539,7 @@ export async function initController() {
     track.elev = elev;
     track.trackLengthM = track.trackLengthM ?? (track.distM.length ? track.distM[track.distM.length - 1] : 0);
     track.trackLength = track.trackLengthM * distFactor;
+    updatePaceEstimate(track);
 
     const prevCursor = state.cursor;
     chartView.setData(dist, elev, {
@@ -537,6 +548,22 @@ export async function initController() {
     });
 
     if (prevCursor?.kind === "vertex") chartView.setCursorIndex(prevCursor.idx);
+  }
+
+  function updatePaceEstimate(track) {
+    if (!track || track.durationSource !== "pace") return false;
+    track.estimatedTimeSeconds = estimatedDurationSecondsFromPace(track.trackLengthM, settings);
+    return true;
+  }
+
+  async function persistCurrentPaceEstimate() {
+    const track = state.currentTrack;
+    if (!updatePaceEstimate(track)) return;
+    const record = await db.getTrack(track.id);
+    if (!record) return;
+    record.durationSource = "pace";
+    record.estimatedTimeSeconds = track.estimatedTimeSeconds;
+    await db.putTrack(record);
   }
 
   async function renameCurrentTrack() {
@@ -562,11 +589,15 @@ export async function initController() {
     await refreshHistory();
   }
 
-  async function openTrackFromBlob({ id, name, description, gpxBlob, addedAt, photoIds = [] }) {
+  async function openTrackFromBlob(
+    { id, name, description, gpxBlob, addedAt, photoIds = [] },
+    { generation = ++openTrackGeneration } = {}
+  ) {
     setCurrentTitle("");
     chartView.clear({ message: t("chart.processing") });
 
     const parsed = await parseGpxBlob(gpxBlob, { fallbackName: name });
+    if (generation !== openTrackGeneration) return false;
     const displayName = (parsed.name || name || "").trim();
     setCurrentTitle(displayName);
     mapView.setTrack(parsed.latlngs);
@@ -583,6 +614,7 @@ export async function initController() {
       ele: parsed.ele,
       timeMs: parsed.timeMs
     });
+    if (generation !== openTrackGeneration) return false;
 
     const dist = Array.from(distM, (m) => m * distFactor);
     const elev = Array.from(eleNorm, (m) => m * eleFactor);
@@ -595,29 +627,28 @@ export async function initController() {
     const totalDistM = distM.length ? distM[distM.length - 1] : 0;
     const trackLength = totalDistM * distFactor;
 
-    let estimatedTimeSeconds = 0;
-    if (stats.hasTime && stats.startTimeMs && stats.endTimeMs && stats.endTimeMs > stats.startTimeMs) {
-      estimatedTimeSeconds = Math.round((stats.endTimeMs - stats.startTimeMs) / 1000);
-    } else {
-      const paceSec = settings.unitSystem === "imperial" ? settings.pace.secondsPerMi : settings.pace.secondsPerKm;
-      estimatedTimeSeconds = Math.round(trackLength * paceSec);
-    }
+    const recordedSeconds = recordedDurationSeconds(stats);
+    const durationSource = recordedSeconds == null ? "pace" : "recorded";
+    const estimatedTimeSeconds = recordedSeconds ?? estimatedDurationSecondsFromPace(totalDistM, settings);
 
     const record = {
       id,
       addedAt,
       name: parsed.name || name,
-      description: description ?? parsed.description ?? "",
+      description: description || parsed.description || "",
       gpxBlob,
       trackLength,
       trackLengthUnit: unit,
       trackLengthM: totalDistM,
       estimatedTimeSeconds,
+      durationSource,
       photoIds
     };
 
     await db.putTrack(record);
+    if (generation !== openTrackGeneration) return false;
     await refreshHistory();
+    if (generation !== openTrackGeneration) return false;
 
     state.currentTrack = {
       id,
@@ -633,6 +664,7 @@ export async function initController() {
       trackLength,
       trackLengthM: totalDistM,
       estimatedTimeSeconds,
+      durationSource,
       timeMs: parsed.timeMs,
       unit,
       eleFactor,
@@ -643,17 +675,18 @@ export async function initController() {
     updateCursorFromTrackVertex(0, { source: "open" });
 
     localStorage.setItem("lastTrackId", id);
-
-    queueAutoCacheTiles();
+    return true;
   }
 
   async function openTrackById(id) {
+    const generation = ++openTrackGeneration;
     const record = await db.getTrack(id);
+    if (generation !== openTrackGeneration) return false;
     if (!record) {
       showToast(t("toast.trackNotFound"));
-      return;
+      return false;
     }
-    await openTrackFromBlob(record);
+    return openTrackFromBlob(record, { generation });
   }
 
   async function importGpxFile(file) {
@@ -688,23 +721,6 @@ export async function initController() {
       suppressChartCursorEventsOnce();
       chartView.setCursorIndex(idx);
     }
-  }
-
-  function queueAutoCacheTiles() {
-    const track = state.currentTrack;
-    if (!track) return;
-
-    const zFit = mapView.getZoom();
-    const zooms = [zFit, Math.min(19, zFit + 1)];
-    const bbox = track.bounds;
-    if (!bbox) return;
-
-    sw.requestTileAutoCache({
-      tileTemplate: settings.tile.template,
-      bbox,
-      zooms,
-      paddingRatio: 0.03
-    });
   }
 
   function segmentDistM(i, t) {
@@ -955,6 +971,7 @@ export async function initController() {
       saveSettings(settings);
       renderSettings();
       applyUnitSystemToCurrentTrack();
+      await persistCurrentPaceEstimate();
       await refreshHistory();
     });
 
@@ -967,13 +984,16 @@ export async function initController() {
       retentionSel.value = s;
     }
 
-    paceInput?.addEventListener("change", () => {
+    paceInput?.addEventListener("change", async () => {
       const val = Number.parseFloat(paceInput.value);
       if (!Number.isFinite(val) || val <= 0) return;
       const seconds = Math.round(val * 60);
       if (settings.unitSystem === "imperial") settings.pace.secondsPerMi = seconds;
       else settings.pace.secondsPerKm = seconds;
       saveSettings(settings);
+      await persistCurrentPaceEstimate();
+      await refreshHistory();
+      if (state.cursor?.kind === "vertex") chartView.setCursorIndex(state.cursor.idx);
       showToast(t("toast.saved"));
     });
 
@@ -1131,13 +1151,6 @@ export async function initController() {
     if (renameFromPointer) currentTitle.blur?.();
     renameFromPointer = false;
     renameCurrentTrack().catch(() => {});
-  });
-
-  sw.onProgress((p) => {
-    if (p.type === "tileAutoCacheProgress") {
-      showMicroprogress(t("settings.cacheProgress", { done: p.done, total: p.total }));
-      if (p.done >= p.total) setTimeout(() => hideMicroprogress(), 500);
-    }
   });
 
   window.addEventListener("resize", () => {

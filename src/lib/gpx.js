@@ -1,4 +1,4 @@
-import { t } from "./i18n";
+import { t } from "./i18n.js";
 
 function firstByLocalName(node, localName) {
   if (!node) return null;
@@ -9,8 +9,14 @@ function firstByLocalName(node, localName) {
   return null;
 }
 
-function textOfFirst(node, localName) {
-  const el = firstByLocalName(node, localName);
+function firstDirectChildByLocalName(node, localName) {
+  if (!node) return null;
+  const children = Array.from(node.children ?? node.childNodes ?? []);
+  return children.find((child) => child?.nodeType === 1 && (child.localName || child.nodeName) === localName) ?? null;
+}
+
+function textOfDirectChild(node, localName) {
+  const el = firstDirectChildByLocalName(node, localName);
   return el?.textContent?.trim() || "";
 }
 
@@ -27,11 +33,11 @@ export async function parseGpxBlob(blob, { fallbackName } = {}) {
   }
 
   const gpx = doc.documentElement ?? doc;
-  const trk = firstByLocalName(gpx, "trk");
+  const trk = firstDirectChildByLocalName(gpx, "trk") || firstByLocalName(gpx, "trk");
 
-  const name = (trk && textOfFirst(trk, "name")) || fallbackName || "";
-  const metadata = firstByLocalName(gpx, "metadata");
-  const description = (trk && textOfFirst(trk, "desc")) || textOfFirst(metadata, "desc") || "";
+  const name = (trk && textOfDirectChild(trk, "name")) || fallbackName || "";
+  const metadata = firstDirectChildByLocalName(gpx, "metadata");
+  const description = (trk && textOfDirectChild(trk, "desc")) || textOfDirectChild(metadata, "desc") || "";
 
   const pts = Array.from(doc.getElementsByTagNameNS?.("*", "trkpt") ?? doc.getElementsByTagName("trkpt") ?? []);
   if (pts.length === 0) throw new Error(t("errors.gpxNoPoints"));
@@ -42,7 +48,6 @@ export async function parseGpxBlob(blob, { fallbackName } = {}) {
   const ele = [];
   const timeMs = [];
 
-  let lastEle = 0;
   let minLat = Infinity;
   let maxLat = -Infinity;
   let minLon = Infinity;
@@ -58,21 +63,28 @@ export async function parseGpxBlob(blob, { fallbackName } = {}) {
     minLon = Math.min(minLon, lo);
     maxLon = Math.max(maxLon, lo);
 
-    const eleStr = textOfFirst(pt, "ele");
+    const eleStr = textOfDirectChild(pt, "ele");
     const e = parseNumber(eleStr);
-    if (e != null) lastEle = e;
 
-    const tStr = textOfFirst(pt, "time");
+    const tStr = textOfDirectChild(pt, "time");
     const t = tStr ? Date.parse(tStr) : NaN;
 
     latlngs.push([la, lo]);
     lat.push(la);
     lon.push(lo);
-    ele.push(e ?? lastEle ?? 0);
+    ele.push(e ?? Number.NaN);
     timeMs.push(Number.isFinite(t) ? t : -1);
   }
 
   if (latlngs.length < 2) throw new Error(t("errors.gpxNotEnoughPoints"));
+
+  const firstKnownElevation = ele.find((value) => Number.isFinite(value));
+  const hasElevation = firstKnownElevation != null;
+  let lastKnownElevation = firstKnownElevation ?? 0;
+  for (let i = 0; i < ele.length; i++) {
+    if (Number.isFinite(ele[i])) lastKnownElevation = ele[i];
+    else ele[i] = lastKnownElevation;
+  }
 
   return {
     name,
@@ -87,7 +99,8 @@ export async function parseGpxBlob(blob, { fallbackName } = {}) {
     lat: new Float64Array(lat),
     lon: new Float64Array(lon),
     ele: new Float32Array(ele),
-    timeMs: new Float64Array(timeMs)
+    timeMs: new Float64Array(timeMs),
+    hasElevation
   };
 }
 
@@ -99,8 +112,8 @@ export async function setGpxTrackName(blob, nextName) {
   }
 
   const gpx = doc.documentElement ?? doc;
-  const trk = firstByLocalName(gpx, "trk") || gpx;
-  let nameEl = firstByLocalName(trk, "name");
+  const trk = firstDirectChildByLocalName(gpx, "trk") || firstByLocalName(gpx, "trk") || gpx;
+  let nameEl = firstDirectChildByLocalName(trk, "name");
   if (!nameEl) {
     const ns = trk?.namespaceURI || gpx?.namespaceURI || null;
     nameEl = ns ? doc.createElementNS(ns, "name") : doc.createElement("name");
