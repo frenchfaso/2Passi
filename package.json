@@ -1,7 +1,7 @@
 {
   "name": "2passi",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Lightweight GPX viewer with history and elevation",
   "license": "MIT",
   "author": "Frenchfaso",
@@ -22,7 +22,7 @@
   "type": "module",
   "packageManager": "npm@11.6.1",
   "engines": {
-    "node": ">=20.19"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "vite",
@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "jsdom": "^29.1.1",
-    "vite": "^8.1.4",
+    "vite": "^8.1.6",
     "vite-plugin-pwa": "^1.3.0",
     "workbox-cacheable-response": "^7.3.0",
     "workbox-core": "^7.3.0",
