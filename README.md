@@ -38,7 +38,7 @@ OpenStreetMap tile service is subject to its
 
 ## Development
 
-Requires Node.js 20.19 or newer and npm 11.6.1.
+Requires Node.js 24 LTS or newer and npm 11.6.1.
 
 ```sh
 npm ci
